@@ -1,0 +1,1 @@
+c:\users\user\documents\visual studio 2013\Projects\yetAnotherRangeIndicator\yetAnotherRangeIndicator\bin\Debug\yetAnotherRangeIndicator.exe.config
