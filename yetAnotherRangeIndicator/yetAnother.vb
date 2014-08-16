@@ -18,7 +18,7 @@ Public Class yetAnotherRangeIndicator
     End Sub
 
     Public Shared Sub Drawing_OnDraw(ByVal args As EventArgs)
-        'On Draw - Graphics go here
+		'On Draw - Drawing Happens Here
         If System.Windows.Input.Keyboard.IsKeyToggled(Key.Numpad1) Then
             drawOnEnemy()
         End If
@@ -26,29 +26,23 @@ Public Class yetAnotherRangeIndicator
 
     Public Shared Sub Game_OnTick(ByVal args As EventArgs)
         'On Tick - Maths go here
-        'calculateDamage()
         
     End Sub
 
     '-------------------------------------------------------------------------------------------------------------------------------------------------------------'
     'Actual Methods
-    '-------------------------------------------------------------------------------------------------------------------------------------------------------------'
-
+	'-------------------------------------------------------------------------------------------------------------------------------------------------------------
     Public Shared Sub drawOnEnemy()
         For Each target As Obj_AI_Hero In ObjectManager.Get(Of Obj_AI_Hero)()
             If target.IsValid And target.IsEnemy And target.IsDead = False And target.IsVisible Then
                 Drawing.DrawCircle(target.Position, target.AttackRange, System.Drawing.Color.AliceBlue)
             End If
             If target.Health - (DamageLib.getDmg(ObjectManager.Player, SpellType.Q) + (2 * DamageLib.getDmg(ObjectManager.Player, SpellType.AD))) <= 0 Then
-                Drawing.DrawText(target.Position.X, target.Position.Y, Color.DarkRed, "kill em")
+				Drawing.DrawText(target.Position.X, target.Position.Y, Color.DarkRed, "Enemy Ready")
             End If
         Next
-    End Sub
+	End Sub
 
-    Public Shared Sub calculateDamage()
-
-    End Sub
-
-    'Add more Subs here
+	'Add more methods and functions
 
 End Class
