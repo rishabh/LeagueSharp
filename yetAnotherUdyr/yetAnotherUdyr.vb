@@ -8,7 +8,7 @@ Imports System.Collections.Generic
 Public Class yetAnotherUdyr
 
 	'Script Information
-	Shared versionNumber As String = "1.0.7"
+	Shared versionNumber As String = "1.0.8"
 
 	'Ease of use
 	Shared player As Obj_AI_Hero = ObjectManager.Player
@@ -57,131 +57,120 @@ Public Class yetAnotherUdyr
 
 #Region "Event Handlers"
 	Public Shared Sub Game_onGameLoad(args As System.EventArgs)
-		Try
-			Console.WriteLine("1")
 
-			Game.PrintChat("yetAnotherUdyr by FlapperDoodle, version: " & versionNumber)
-			If Not ObjectManager.Player.ChampionName = "Udyr" Then
-				Game.PrintChat("Please use Udyr~")
-				Return
+		Game.PrintChat("yetAnotherUdyr by FlapperDoodle, version: " & versionNumber)
+		If Not ObjectManager.Player.ChampionName = "Udyr" Then
+			Game.PrintChat("Please use Udyr~")
+			Return
+		End If
+
+		'Spell Initialize
+		Q = New Spell(SpellSlot.Q, 200)
+		W = New Spell(SpellSlot.W, 200)
+		E = New Spell(SpellSlot.E, 200)
+		R = New Spell(SpellSlot.R, 200)
+
+		'Main Menu
+		Config = New Menu("yA-Udyr", "yA-Udyr", True)
+
+		'Orbwalker
+		Config.AddSubMenu(New Menu("Orbwalking", "Orbwalking"))
+		Orbwalker = New Orbwalking.Orbwalker(Config.SubMenu("Orbwalking"))
+
+
+		'Target Selector
+		Dim TargetSelector = New Menu("Target Selector", "Target Selector")
+		SimpleTs.AddToMenu(TargetSelector)
+		Config.AddSubMenu(TargetSelector)
+
+		'Main
+		Config.AddItem(New MenuItem("Combo Key", "Combo Key").SetValue(New KeyBind(32, KeyBindType.Press)))
+		Config.AddItem(New MenuItem("Style", "Style").SetValue(New StringList({"Phoenix", "Tiger"}, 0)))
+
+		'Items
+		Config.AddSubMenu(New Menu("Items", "Items"))
+		''Offensive
+		Config.SubMenu("Items").AddSubMenu(New Menu("Offense", "Offense"))
+		Config.SubMenu("Items").SubMenu("Offense").AddItem(New MenuItem("BilgeCut", "Bilgewater Cutlass").SetValue(True))
+		Config.SubMenu("Items").SubMenu("Offense").AddItem(New MenuItem("BoTRK", "BoT Ruined King").SetValue(True))
+		Config.SubMenu("Items").SubMenu("Offense").AddItem(New MenuItem("RavHydra", "Ravenous Hydra").SetValue(True))
+		Config.SubMenu("Items").SubMenu("Offense").AddItem(New MenuItem("RanOmen", "Randuin's Omen").SetValue(True))
+		Config.SubMenu("Items").SubMenu("Offense").AddItem(New MenuItem("Tiamat", "Tiamat").SetValue(True))
+
+		''Defensive
+		Config.SubMenu("Items").AddSubMenu(New Menu("Defense", "Defense"))
+		Config.SubMenu("Items").SubMenu("Defense").AddSubMenu(New Menu("LoT Iron Solari", "LoTIS-Menu"))
+		'''LoT-IS
+		Config.SubMenu("Items").SubMenu("Defense").SubMenu("LoTIS-Menu").AddItem(New MenuItem("LoTIS", "Enabled").SetValue(True))
+		Config.SubMenu("Items").SubMenu("Defense").SubMenu("LoTIS-Menu").AddItem(New MenuItem("LoTIS-HP-%", "Use at HP %").SetValue(New Slider(40)))
+
+		'Farm
+		Config.AddSubMenu(New Menu("Farm", "Farm"))
+		Config.SubMenu("Farm").AddItem(New MenuItem("Use-Q-Farm", "Use Q").SetValue(True))
+		Config.SubMenu("Farm").AddItem(New MenuItem("Use-R-Farm", "Use R").SetValue(True))
+		Config.SubMenu("Farm").AddItem(New MenuItem("Farm-Mana", "Mana Limit").SetValue(New Slider(20)))
+		Config.SubMenu("Farm").AddItem(New MenuItem("Farm Key", "Farm Key").SetValue(New KeyBind(86, KeyBindType.Press)))
+
+		'Jungle Farm
+		Config.AddSubMenu(New Menu("Jungle Farm", "Jungle Farm"))
+		Config.SubMenu("Jungle Farm").AddItem(New MenuItem("Use-Q-Jungle", "Use Q").SetValue(True))
+		Config.SubMenu("Jungle Farm").AddItem(New MenuItem("Use-R-Jungle", "Use R").SetValue(True))
+		Config.SubMenu("Jungle Farm").AddItem(New MenuItem("Use-W-Jungle", "Use W").SetValue(True))
+		Config.SubMenu("Jungle Farm").AddItem(New MenuItem("Jungle-Mana", "Mana Limit").SetValue(New Slider(20)))
+		Config.SubMenu("Jungle Farm").AddItem(New MenuItem("Jungle Farm Key", "Jungle Farm Key").SetValue(New KeyBind(67, KeyBindType.Press)))
+
+		'Misc
+		Config.AddSubMenu(New Menu("Misc", "Misc"))
+		Config.SubMenu("Misc").AddItem(New MenuItem("Auto Level", "Auto Level").SetValue(True))
+		Config.SubMenu("Misc").AddItem(New MenuItem("Stun Lock", "Stun Lock").SetValue(True))
+
+		''Ignite
+		igniteSpell = player.GetSpellSlot("SummonerDot")
+
+		If igniteSpell = SpellSlot.Unknown Then
+			Game.PrintChat("yA-Udyr: Ignite-related functions disabled.")
+		Else
+			Config.SubMenu("Misc").AddSubMenu(New Menu("Ignite", "Ignite"))
+			Config.SubMenu("Misc").SubMenu("Ignite").AddItem(New MenuItem("Auto Ignite", "Auto Ignite").SetValue(New StringList({"In Combo", "Killsteal", "Killable", "Never"}, 0)))
+			Config.SubMenu("Misc").SubMenu("Ignite").AddItem(New MenuItem("Ignite HP", "Ignite in Combo, HP %").SetValue(New Slider(35)))
+			AddHandler ignite.CanKillEnemies, AddressOf CanKillEnemiesIgnite
+			AddHandler ignite.CanKillstealEnemies, AddressOf CanKillStealEnemiesIgnite
+			hasIgnite = True
+		End If
+
+		''Smite
+		smiteSpell = player.GetSpellSlot("SummonerSmite")
+
+		If smiteSpell = SpellSlot.Unknown Then
+			Game.PrintChat("yA-Udyr: Smite-related functions disabled.")
+		Else
+			Config.SubMenu("Misc").AddSubMenu(New Menu("Smite", "Smite"))
+			Config.SubMenu("Misc").SubMenu("Smite").AddItem(New MenuItem("Auto Smite", "Auto Smite").SetValue(New StringList({"Buffs Only", "D+B Only", "Both", "Never"}, 2)))
+			hasSmite = True
+		End If
+
+		'Drawing
+		Config.AddSubMenu(New Menu("Drawing", "Drawing"))
+		Config.SubMenu("Drawing").AddItem(New MenuItem("Draw", "Draw").SetValue(True))
+		''Enemy Status
+		For Each enemy As Obj_AI_Hero In ObjectManager.Get(Of Obj_AI_Hero)()
+			If enemy.IsEnemy Then
+				enemyColor.Add(enemy.NetworkId, System.Drawing.Color.Green)
+				Config.SubMenu("Drawing").AddSubMenu(New Menu(enemy.ChampionName, enemy.ChampionName))
+				Config.SubMenu("Drawing").SubMenu(enemy.ChampionName).AddItem(New MenuItem(enemy.NetworkId & "E", "Enabled").SetValue(True))
+				Config.SubMenu("Drawing").SubMenu(enemy.ChampionName).AddItem(New MenuItem(enemy.NetworkId & "KC", "Killable Circle").SetValue(True))
+				Config.SubMenu("Drawing").SubMenu(enemy.ChampionName).AddItem(New MenuItem(enemy.NetworkId & "HP", "HP").SetValue(True))
+				Config.SubMenu("Drawing").SubMenu(enemy.ChampionName).AddItem(New MenuItem(enemy.NetworkId & "MP", "MP").SetValue(True))
+				Config.SubMenu("Drawing").SubMenu(enemy.ChampionName).AddItem(New MenuItem(enemy.NetworkId & "R", "Range").SetValue(New StringList({"Basic Attack", "Q", "W", "E", "R", "None"})))
 			End If
+		Next
+		Config.AddToMainMenu()
 
-			'Spell Initialize
-			Q = New Spell(SpellSlot.Q, 200)
-			W = New Spell(SpellSlot.W, 200)
-			E = New Spell(SpellSlot.E, 200)
-			R = New Spell(SpellSlot.R, 200)
-
-
-			'Main Menu
-			Config = New Menu("yA-Udyr", "yA-Udyr", True)
-
-
-			'Orbwalker
-			Config.AddSubMenu(New Menu("Orbwalking", "Orbwalking"))
-			Orbwalker = New Orbwalking.Orbwalker(Config.SubMenu("Orbwalking"))
-
-
-			'Target Selector
-			Dim TargetSelector = New Menu("Target Selector", "Target Selector")
-			SimpleTs.AddToMenu(TargetSelector)
-			Config.AddSubMenu(TargetSelector)
-
-
-			'Main
-			Config.AddItem(New MenuItem("Combo Key", "Combo Key").SetValue(New KeyBind(32, KeyBindType.Press)))
-			Config.AddItem(New MenuItem("Style", "Style").SetValue(New StringList({"Phoenix", "Tiger"}, 0)))
-
-			'Items
-			Config.AddSubMenu(New Menu("Items", "Items"))
-			''Offensive
-			Config.SubMenu("Items").AddSubMenu(New Menu("Offense", "Offense"))
-			Config.SubMenu("Items").SubMenu("Offense").AddItem(New MenuItem("BilgeCut", "Bilgewater Cutlass").SetValue(True))
-			Config.SubMenu("Items").SubMenu("Offense").AddItem(New MenuItem("BoTRK", "BoT Ruined King").SetValue(True))
-			Config.SubMenu("Items").SubMenu("Offense").AddItem(New MenuItem("RavHydra", "Ravenous Hydra").SetValue(True))
-			Config.SubMenu("Items").SubMenu("Offense").AddItem(New MenuItem("RanOmen", "Randuin's Omen").SetValue(True))
-			Config.SubMenu("Items").SubMenu("Offense").AddItem(New MenuItem("Tiamat", "Tiamat").SetValue(True))
-
-			''Defensive
-			Config.SubMenu("Items").AddSubMenu(New Menu("Defense", "Defense"))
-			Config.SubMenu("Items").SubMenu("Defense").AddSubMenu(New Menu("LoT Iron Solari", "LoTIS-Menu"))
-			'''LoT-IS
-			Config.SubMenu("Items").SubMenu("Defense").SubMenu("LoTIS-Menu").AddItem(New MenuItem("LoTIS", "Enabled").SetValue(True))
-			Config.SubMenu("Items").SubMenu("Defense").SubMenu("LoTIS-Menu").AddItem(New MenuItem("LoTIS-HP-%", "Use at HP %").SetValue(New Slider(40)))
-
-			'Farm
-			Config.AddSubMenu(New Menu("Farm", "Farm"))
-			Config.SubMenu("Farm").AddItem(New MenuItem("Use-Q-Farm", "Use Q").SetValue(True))
-			Config.SubMenu("Farm").AddItem(New MenuItem("Use-R-Farm", "Use R").SetValue(True))
-			Config.SubMenu("Farm").AddItem(New MenuItem("Farm-Mana", "Mana Limit").SetValue(New Slider(20)))
-			Config.SubMenu("Farm").AddItem(New MenuItem("Farm Key", "Farm Key").SetValue(New KeyBind(86, KeyBindType.Press)))
-
-			'Jungle Farm
-			Config.AddSubMenu(New Menu("Jungle Farm", "Jungle Farm"))
-			Config.SubMenu("Jungle Farm").AddItem(New MenuItem("Use-Q-Jungle", "Use Q").SetValue(True))
-			Config.SubMenu("Jungle Farm").AddItem(New MenuItem("Use-R-Jungle", "Use R").SetValue(True))
-			Config.SubMenu("Jungle Farm").AddItem(New MenuItem("Use-W-Jungle", "Use W").SetValue(True))
-			Config.SubMenu("Jungle Farm").AddItem(New MenuItem("Jungle-Mana", "Mana Limit").SetValue(New Slider(20)))
-			Config.SubMenu("Jungle Farm").AddItem(New MenuItem("Jungle Farm Key", "Jungle Farm Key").SetValue(New KeyBind(67, KeyBindType.Press)))
-
-			'Misc
-			Config.AddSubMenu(New Menu("Misc", "Misc"))
-			Config.SubMenu("Misc").AddItem(New MenuItem("Auto Level", "Auto Level").SetValue(True))
-			Config.SubMenu("Misc").AddItem(New MenuItem("Stun Lock", "Stun Lock").SetValue(True))
-
-			''Ignite
-			igniteSpell = player.GetSpellSlot("SummonerDot")
-
-			If igniteSpell = SpellSlot.Unknown Then
-				Game.PrintChat("yA-Udyr: Ignite-related functions disabled.")
-			Else
-				Config.SubMenu("Misc").AddSubMenu(New Menu("Ignite", "Ignite"))
-				Config.SubMenu("Misc").SubMenu("Ignite").AddItem(New MenuItem("Auto Ignite", "Auto Ignite").SetValue(New StringList({"In Combo", "Killsteal", "Killable", "Never"}, 0)))
-				Config.SubMenu("Misc").SubMenu("Ignite").AddItem(New MenuItem("Ignite HP", "Ignite in Combo, HP %").SetValue(New Slider(35)))
-				AddHandler ignite.CanKillEnemies, AddressOf CanKillEnemiesIgnite
-				AddHandler ignite.CanKillstealEnemies, AddressOf CanKillStealEnemiesIgnite
-				hasIgnite = True
-			End If
-
-			''Smite
-			smiteSpell = player.GetSpellSlot("SummonerSmite")
-
-			If smiteSpell = SpellSlot.Unknown Then
-				Game.PrintChat("yA-Udyr: Smite-related functions disabled.")
-			Else
-				Config.SubMenu("Misc").AddSubMenu(New Menu("Smite", "Smite"))
-				Config.SubMenu("Misc").SubMenu("Smite").AddItem(New MenuItem("Auto Smite", "Auto Smite").SetValue(New StringList({"Buffs Only", "D+B Only", "Both", "Never"}, 2)))
-				hasSmite = True
-			End If
-
-
-			'Drawing
-			Config.AddSubMenu(New Menu("Drawing", "Drawing"))
-			Config.SubMenu("Drawing").AddItem(New MenuItem("Draw", "Draw").SetValue(True))
-			''Enemy Status
-			For Each enemy As Obj_AI_Hero In ObjectManager.Get(Of Obj_AI_Hero)()
-				If enemy.IsEnemy Then
-					enemyColor.Add(enemy.NetworkId, System.Drawing.Color.Green)
-					Config.SubMenu("Drawing").AddSubMenu(New Menu(enemy.ChampionName, enemy.ChampionName))
-					Config.SubMenu("Drawing").SubMenu(enemy.ChampionName).AddItem(New MenuItem(enemy.NetworkId & "E", "Enabled").SetValue(True))
-					Config.SubMenu("Drawing").SubMenu(enemy.ChampionName).AddItem(New MenuItem(enemy.NetworkId & "KC", "Killable Circle").SetValue(True))
-					Config.SubMenu("Drawing").SubMenu(enemy.ChampionName).AddItem(New MenuItem(enemy.NetworkId & "HP", "HP").SetValue(True))
-					Config.SubMenu("Drawing").SubMenu(enemy.ChampionName).AddItem(New MenuItem(enemy.NetworkId & "MP", "MP").SetValue(True))
-					Config.SubMenu("Drawing").SubMenu(enemy.ChampionName).AddItem(New MenuItem(enemy.NetworkId & "R", "Range").SetValue(New StringList({"Basic Attack", "Q", "W", "E", "R", "None"})))
-				End If
-			Next
-			Config.AddToMainMenu()
-
-			'Handles
-			AddHandler Game.OnGameUpdate, AddressOf Game_OnGameUpdate
-			AddHandler Drawing.OnDraw, AddressOf Drawing_OnDraw
-			AddHandler CustomEvents.Unit.OnLevelUp, AddressOf Unit_OnLevelUp
-			AddHandler Orbwalking.BeforeAttack, AddressOf Orbwalking_BeforeAttack
-
-		Catch ex As Exception
-			Console.WriteLine(ex.ToString())
-		End Try
-
+		'Handles
+		AddHandler Game.OnGameUpdate, AddressOf Game_OnGameUpdate
+		AddHandler Drawing.OnDraw, AddressOf Drawing_OnDraw
+		AddHandler CustomEvents.Unit.OnLevelUp, AddressOf Unit_OnLevelUp
+		AddHandler Orbwalking.BeforeAttack, AddressOf Orbwalking_BeforeAttack
 
 	End Sub
 
@@ -265,15 +254,15 @@ Public Class yetAnotherUdyr
 							Case 5
 								Exit Select
 							Case 0
-								Utility.DrawCircle(enemyVisible.Position, enemyVisible.BasicAttack.CastRadius(0), System.Drawing.Color.White, 1, 25)
+								Utility.DrawCircle(enemyVisible.Position, enemyVisible.BasicAttack.CastRange(0), System.Drawing.Color.White, 1, 25)
 							Case 1
-								Utility.DrawCircle(enemyVisible.Position, enemyVisible.Spellbook.GetSpell(SpellSlot.Q).SData.CastRadius(0), System.Drawing.Color.White, 1, 25)
+								Utility.DrawCircle(enemyVisible.Position, enemyVisible.Spellbook.GetSpell(SpellSlot.Q).SData.CastRange(0), System.Drawing.Color.White, 1, 25)
 							Case 2
-								Utility.DrawCircle(enemyVisible.Position, enemyVisible.Spellbook.GetSpell(SpellSlot.W).SData.CastRadius(0), System.Drawing.Color.White, 1, 25)
+								Utility.DrawCircle(enemyVisible.Position, enemyVisible.Spellbook.GetSpell(SpellSlot.W).SData.CastRange(0), System.Drawing.Color.White, 1, 25)
 							Case 3
-								Utility.DrawCircle(enemyVisible.Position, enemyVisible.Spellbook.GetSpell(SpellSlot.E).SData.CastRadius(0), System.Drawing.Color.White, 1, 25)
+								Utility.DrawCircle(enemyVisible.Position, enemyVisible.Spellbook.GetSpell(SpellSlot.E).SData.CastRange(0), System.Drawing.Color.White, 1, 25)
 							Case 4
-								Utility.DrawCircle(enemyVisible.Position, enemyVisible.Spellbook.GetSpell(SpellSlot.R).SData.CastRadius(0), System.Drawing.Color.White, 1, 25)
+								Utility.DrawCircle(enemyVisible.Position, enemyVisible.Spellbook.GetSpell(SpellSlot.R).SData.CastRange(0), System.Drawing.Color.White, 1, 25)
 						End Select
 					End If
 				End If
@@ -290,23 +279,25 @@ Public Class yetAnotherUdyr
 
 		If target IsNot Nothing Then
 
-			Dim configIgnite = Config.Item("Auto Ignite").GetValue(Of StringList)().SelectedIndex
-
 			'If auto-ignite is set to "In Combo" or "Both" mode
 			If hasIgnite AndAlso player.SummonerSpellbook.CanUseSpell(igniteSpell) = SpellState.Ready Then
+				Dim configIgnite = Config.Item("Auto Ignite").GetValue(Of StringList)().SelectedIndex
+
 				If configIgnite = 2 AndAlso ignite.CanKill(target) Then
 					ignite.Cast(target)
-				ElseIf configIgnite = 0 AndAlso Config.Item("Ignite HP").GetValue(Of Slider).Value > ((target.Health / target.MaxHealth) * 100) Then
+				ElseIf configIgnite = 0 AndAlso Config.Item("Ignite HP").GetValue(Of Slider).Value >= ((target.Health / target.MaxHealth) * 100) Then
 					ignite.Cast(target)
 				End If
-			End If
-			'If stun lock is on, the target doesn't have a stun buff, and the spell is ready, then cast bear stun
-			If Config.Item("Stun Lock").GetValue(Of Boolean)() AndAlso E.IsReady() AndAlso Not target.HasBuff("udyrbearstuncheck") AndAlso player.Distance(target) < 200 Then
-				E.Cast()
 			End If
 
 			'Skill order sequence
 			If player.Distance(target) < 300 Then
+
+				'If stun lock is on, the target doesn't have a stun buff, and the spell is ready, then cast bear stun
+				If Config.Item("Stun Lock").GetValue(Of Boolean)() AndAlso E.IsReady() AndAlso Not target.HasBuff("udyrbearstuncheck") Then
+					E.Cast()
+				End If
+
 				If Config.Item("Style").GetValue(Of StringList)().SelectedIndex = 0 Then
 					If R.IsReady() Then
 						R.Cast()
@@ -337,14 +328,17 @@ Public Class yetAnotherUdyr
 			End If
 
 			'Do Attack Items
-			If Config.Item("RavHydra").GetValue(Of Boolean)() AndAlso RavHydra.IsReady Then
-				RavHydra.Cast(target)
-			End If
 			If Config.Item("BoTRK").GetValue(Of Boolean)() AndAlso BoTRK.IsReady Then
 				BoTRK.Cast(target)
 			End If
+			If Config.Item("RavHydra").GetValue(Of Boolean)() AndAlso RavHydra.IsReady Then
+				RavHydra.Cast(target)
+			End If
 			If Config.Item("BilgeCut").GetValue(Of Boolean)() AndAlso BilgeCut.IsReady Then
 				BilgeCut.Cast(target)
+			End If
+			If Config.Item("Tiamat").GetValue(Of Boolean)() AndAlso Tiamat.IsReady Then
+				Tiamat.Cast(target)
 			End If
 			If Config.Item("RanOmen").GetValue(Of Boolean)() AndAlso RanOmen.IsReady Then
 				For Each enemy In ObjectManager.Get(Of Obj_AI_Hero)()
@@ -353,9 +347,7 @@ Public Class yetAnotherUdyr
 					End If
 				Next
 			End If
-			If Config.Item("Tiamat").GetValue(Of Boolean)() AndAlso Tiamat.IsReady Then
-				Tiamat.Cast(target)
-			End If
+
 		End If
 	End Sub
 
@@ -398,23 +390,24 @@ Public Class yetAnotherUdyr
 		If mobs.Count > 0 Then
 			Dim smiteDamage = Math.Max(20 * player.Level + 370, Math.Max(30 * player.Level + 330, Math.Max(40 * player.Level + 240, 50 * player.Level + 100)))
 			For Each mob In mobs
-				If Not smiteList.Contains(mob.SkinName) Then Continue For
+
+				If Not smiteList.Contains(mob.SkinName) OrElse Not mob.IsValidTarget(790) OrElse Not smiteDamage >= mob.Health Then
+					Continue For
+				End If
 
 				Select Case Config.Item("Auto Smite").GetValue(Of StringList)().SelectedIndex
 					Case 0
-						If (mob.SkinName = "AncientGolem" OrElse mob.SkinName = "LizardElder") AndAlso mob.IsValidTarget(790) AndAlso smiteDamage >= mob.Health Then
+						If (mob.SkinName = "AncientGolem" OrElse mob.SkinName = "LizardElder") Then
 							player.SummonerSpellbook.CastSpell(smiteSpell, mob)
 						End If
 					Case 1
-						If (mob.SkinName = "Dragon" OrElse mob.SkinName = "Worm") AndAlso mob.IsValidTarget(790) AndAlso smiteDamage >= mob.Health Then
+						If (mob.SkinName = "Dragon" OrElse mob.SkinName = "Worm") Then
 							player.SummonerSpellbook.CastSpell(smiteSpell, mob)
 							Exit Select
 						End If
 					Case 2
-						If (mob.SkinName = "Dragon" OrElse mob.SkinName = "Worm" OrElse mob.SkinName = "AncientGolem" OrElse mob.SkinName = "LizardElder") AndAlso mob.IsValidTarget(790) AndAlso smiteDamage >= mob.Health Then
-							player.SummonerSpellbook.CastSpell(smiteSpell, mob)
-							Exit Select
-						End If
+						player.SummonerSpellbook.CastSpell(smiteSpell, mob)
+						Exit Select
 				End Select
 			Next
 		End If
@@ -424,14 +417,29 @@ Public Class yetAnotherUdyr
 		For Each enemy As Obj_AI_Hero In ObjectManager.Get(Of Obj_AI_Hero)()
 			If Utility.IsValidTarget(enemy) Then
 
-				Dim Adamage = DamageLib.getDmg(enemy, DamageLib.SpellType.AD, DamageLib.StageType.Default)
-				Dim qDamage = 0
-				Dim rDamage = 0
+				'Regular
+				Dim totalDamage As Double = DamageLib.getDmg(enemy, DamageLib.SpellType.AD, DamageLib.StageType.Default)
 
-				If Q.IsReady Then qDamage = DamageLib.getDmg(enemy, DamageLib.SpellType.Q, DamageLib.StageType.Default)
-				If R.IsReady Then rDamage = DamageLib.getDmg(enemy, DamageLib.SpellType.R, DamageLib.StageType.Default)
+				'Damage Spells
+				If Q.IsReady Then totalDamage += DamageLib.getDmg(enemy, DamageLib.SpellType.Q, DamageLib.StageType.Default)
+				If R.IsReady Then totalDamage += DamageLib.getDmg(enemy, DamageLib.SpellType.R, DamageLib.StageType.Default)
 
-				Dim totalDamage As Double = Adamage + qDamage + rDamage
+				'Items
+				If BilgeCut.IsReady AndAlso Config.Item("BilgeCut").GetValue(Of Boolean)() Then
+					totalDamage += DamageLib.getDmg(enemy, DamageLib.SpellType.BILGEWATER, DamageLib.StageType.Default)
+				End If
+				If BoTRK.IsReady AndAlso Config.Item("BoTRK").GetValue(Of Boolean)() Then
+					totalDamage += DamageLib.getDmg(enemy, DamageLib.SpellType.BOTRK, DamageLib.StageType.Default)
+
+				End If
+				If RavHydra.IsReady AndAlso Config.Item("RavHydra").GetValue(Of Boolean)() Then
+					totalDamage += DamageLib.getDmg(enemy, DamageLib.SpellType.HYDRA, DamageLib.StageType.Default)
+
+				End If
+				If Tiamat.IsReady AndAlso Config.Item("Tiamat").GetValue(Of Boolean)() Then
+					totalDamage += DamageLib.getDmg(enemy, DamageLib.SpellType.TIAMAT, DamageLib.StageType.Default)
+				End If
+
 				Select Case ((enemy.Health - totalDamage) / enemy.MaxHealth)
 					Case Is >= 0.66
 						enemyColor(enemy.NetworkId) = System.Drawing.Color.Green
