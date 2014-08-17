@@ -161,7 +161,8 @@ Public Class yetAnotherUdyr
 				Config.SubMenu("Drawing").SubMenu(enemy.ChampionName).AddItem(New MenuItem(enemy.NetworkId & "KC", "Killable Circle").SetValue(True))
 				Config.SubMenu("Drawing").SubMenu(enemy.ChampionName).AddItem(New MenuItem(enemy.NetworkId & "HP", "HP").SetValue(True))
 				Config.SubMenu("Drawing").SubMenu(enemy.ChampionName).AddItem(New MenuItem(enemy.NetworkId & "MP", "MP").SetValue(True))
-				Config.SubMenu("Drawing").SubMenu(enemy.ChampionName).AddItem(New MenuItem(enemy.NetworkId & "R", "Range").SetValue(New StringList({"Basic Attack", "Q", "W", "E", "R", "None"})))
+				Config.SubMenu("Drawing").SubMenu(enemy.ChampionName).AddItem(New MenuItem(enemy.NetworkId & "R", "Range").SetValue(New StringList({"Basic", "Q", "W", "E", "R", "None"})))
+				Config.SubMenu("Drawing").SubMenu(enemy.ChampionName).AddItem(New MenuItem(enemy.NetworkId & "RC", "Range Color").SetValue(New Circle(False, System.Drawing.Color.Gray)))
 			End If
 		Next
 		Config.AddToMainMenu()
@@ -205,6 +206,7 @@ Public Class yetAnotherUdyr
 	End Sub
 
 	Shared Sub Game_OnGameUpdate(args As EventArgs)
+		If player.IsDead Then Return
 		'If combo key is pressed
 		If Config.Item("Combo Key").GetValue(Of KeyBind).Active Then
 			comboIt()
@@ -241,28 +243,25 @@ Public Class yetAnotherUdyr
 
 					If Config.Item(enemyVisible.NetworkId & "E").GetValue(Of Boolean)() Then
 
-						If Config.Item(enemyVisible.NetworkId & "KC").GetValue(Of Boolean)() Then
-							Utility.DrawCircle(enemyVisible.Position, 60, enemyColor(enemyVisible.NetworkId), 2, 15)
-						End If
-						If Config.Item(enemyVisible.NetworkId & "HP").GetValue(Of Boolean)() Then
-							Drawing.DrawText(Drawing.WorldToScreen(enemyVisible.Position)(0) - 40, Drawing.WorldToScreen(enemyVisible.Position)(1) - 100, System.Drawing.Color.Red, Convert.ToInt32(enemyVisible.Health / enemyVisible.MaxHealth * 100) & "%")
-						End If
-						If Config.Item(enemyVisible.NetworkId & "MP").GetValue(Of Boolean)() Then
-							Drawing.DrawText(Drawing.WorldToScreen(enemyVisible.Position)(0) + 10, Drawing.WorldToScreen(enemyVisible.Position)(1) - 100, System.Drawing.Color.BlueViolet, Convert.ToInt32(enemyVisible.Mana / enemyVisible.MaxMana * 100) & "%")
-						End If
+						'Regular drawing
+						If Config.Item(enemyVisible.NetworkId & "KC").GetValue(Of Boolean)() Then Utility.DrawCircle(enemyVisible.Position, 60, enemyColor(enemyVisible.NetworkId), 2, 15)
+						If Config.Item(enemyVisible.NetworkId & "HP").GetValue(Of Boolean)() Then Drawing.DrawText(Drawing.WorldToScreen(enemyVisible.Position)(0) - 40, Drawing.WorldToScreen(enemyVisible.Position)(1) - 100, System.Drawing.Color.Red, Convert.ToInt32(enemyVisible.Health / enemyVisible.MaxHealth * 100) & "%")
+						If Config.Item(enemyVisible.NetworkId & "MP").GetValue(Of Boolean)() Then Drawing.DrawText(Drawing.WorldToScreen(enemyVisible.Position)(0) + 10, Drawing.WorldToScreen(enemyVisible.Position)(1) - 100, System.Drawing.Color.BlueViolet, Convert.ToInt32(enemyVisible.Mana / enemyVisible.MaxMana * 100) & "%")
+
+						'Range of Skills
 						Select Case Config.Item(enemyVisible.NetworkId & "R").GetValue(Of StringList).SelectedIndex
 							Case 5
 								Exit Select
 							Case 0
-								Utility.DrawCircle(enemyVisible.Position, enemyVisible.BasicAttack.CastRange(0), System.Drawing.Color.White, 1, 25)
+								Utility.DrawCircle(enemyVisible.Position, enemyVisible.BasicAttack.CastRange(0), System.Drawing.Color.White, 0.5, 25)
 							Case 1
-								Utility.DrawCircle(enemyVisible.Position, enemyVisible.Spellbook.GetSpell(SpellSlot.Q).SData.CastRange(0), System.Drawing.Color.White, 1, 25)
+								Utility.DrawCircle(enemyVisible.Position, enemyVisible.Spellbook.GetSpell(SpellSlot.Q).SData.CastRange(0), Config.Item(enemyVisible.NetworkId & "RC").GetValue(Of Circle).Color, 1, 25)
 							Case 2
-								Utility.DrawCircle(enemyVisible.Position, enemyVisible.Spellbook.GetSpell(SpellSlot.W).SData.CastRange(0), System.Drawing.Color.White, 1, 25)
+								Utility.DrawCircle(enemyVisible.Position, enemyVisible.Spellbook.GetSpell(SpellSlot.W).SData.CastRange(0), Config.Item(enemyVisible.NetworkId & "RC").GetValue(Of Circle).Color, 1, 25)
 							Case 3
-								Utility.DrawCircle(enemyVisible.Position, enemyVisible.Spellbook.GetSpell(SpellSlot.E).SData.CastRange(0), System.Drawing.Color.White, 1, 25)
+								Utility.DrawCircle(enemyVisible.Position, enemyVisible.Spellbook.GetSpell(SpellSlot.E).SData.CastRange(0), Config.Item(enemyVisible.NetworkId & "RC").GetValue(Of Circle).Color, 1, 25)
 							Case 4
-								Utility.DrawCircle(enemyVisible.Position, enemyVisible.Spellbook.GetSpell(SpellSlot.R).SData.CastRange(0), System.Drawing.Color.White, 1, 25)
+								Utility.DrawCircle(enemyVisible.Position, enemyVisible.Spellbook.GetSpell(SpellSlot.R).SData.CastRange(0), Config.Item(enemyVisible.NetworkId & "RC").GetValue(Of Circle).Color, 1, 25)
 						End Select
 					End If
 				End If
@@ -273,82 +272,66 @@ Public Class yetAnotherUdyr
 
 #Region "Methods/Functions"
 	Shared Sub comboIt()
-		'Create target
 
+		'Create target
 		Dim target = SimpleTs.GetTarget(600.0F, SimpleTs.DamageType.Magical)
 
-		If target IsNot Nothing Then
+		If target Is Nothing Then Return
 
-			'If auto-ignite is set to "In Combo" or "Both" mode
-			If hasIgnite AndAlso player.SummonerSpellbook.CanUseSpell(igniteSpell) = SpellState.Ready Then
-				Dim configIgnite = Config.Item("Auto Ignite").GetValue(Of StringList)().SelectedIndex
+		'If auto-ignite is set to "In Combo" or "Both" mode
+		If hasIgnite AndAlso player.SummonerSpellbook.CanUseSpell(igniteSpell) = SpellState.Ready Then
+			Dim configIgnite = Config.Item("Auto Ignite").GetValue(Of StringList)().SelectedIndex
+			If configIgnite = 2 AndAlso ignite.CanKill(target) Then
+				ignite.Cast(target)
+			ElseIf configIgnite = 0 AndAlso Config.Item("Ignite HP").GetValue(Of Slider).Value >= ((target.Health / target.MaxHealth) * 100) Then
+				ignite.Cast(target)
+			End If
+		End If
 
-				If configIgnite = 2 AndAlso ignite.CanKill(target) Then
-					ignite.Cast(target)
-				ElseIf configIgnite = 0 AndAlso Config.Item("Ignite HP").GetValue(Of Slider).Value >= ((target.Health / target.MaxHealth) * 100) Then
-					ignite.Cast(target)
-				End If
+		'Skill order sequence
+		If player.Distance(target) < 300 Then
+
+			'If stun lock is on, the target doesn't have a stun buff, and the spell is ready, then cast bear stun
+			If Config.Item("Stun Lock").GetValue(Of Boolean)() AndAlso E.IsReady() AndAlso Not target.HasBuff("udyrbearstuncheck") Then
+				E.Cast()
 			End If
 
-			'Skill order sequence
-			If player.Distance(target) < 300 Then
-
-				'If stun lock is on, the target doesn't have a stun buff, and the spell is ready, then cast bear stun
-				If Config.Item("Stun Lock").GetValue(Of Boolean)() AndAlso E.IsReady() AndAlso Not target.HasBuff("udyrbearstuncheck") Then
+			If Config.Item("Style").GetValue(Of StringList)().SelectedIndex = 0 Then
+				If R.IsReady() Then
+					R.Cast()
+				End If
+				If Q.IsReady() Then
+					Q.Cast()
+				End If
+				If E.IsReady AndAlso Not target.HasBuff("udyrbearstuncheck") Then
 					E.Cast()
 				End If
-
-				If Config.Item("Style").GetValue(Of StringList)().SelectedIndex = 0 Then
-					If R.IsReady() Then
-						R.Cast()
-					End If
-					If Q.IsReady() Then
-						Q.Cast()
-					End If
-					If E.IsReady AndAlso Not target.HasBuff("udyrbearstuncheck") Then
-						E.Cast()
-					End If
-					If W.IsReady() Then
-						W.Cast()
-					End If
-				Else
-					If E.IsReady AndAlso Not target.HasBuff("udyrbearstuncheck") Then
-						E.Cast()
-					End If
-					If Q.IsReady() Then
-						Q.Cast()
-					End If
-					If W.IsReady() Then
-						W.Cast()
-					End If
-					If R.IsReady() Then
-						R.Cast()
-					End If
+				If W.IsReady() Then
+					W.Cast()
+				End If
+			Else
+				If E.IsReady AndAlso Not target.HasBuff("udyrbearstuncheck") Then
+					E.Cast()
+				End If
+				If Q.IsReady() Then
+					Q.Cast()
+				End If
+				If W.IsReady() Then
+					W.Cast()
+				End If
+				If R.IsReady() Then
+					R.Cast()
 				End If
 			End If
-
-			'Do Attack Items
-			If Config.Item("BoTRK").GetValue(Of Boolean)() AndAlso BoTRK.IsReady Then
-				BoTRK.Cast(target)
-			End If
-			If Config.Item("RavHydra").GetValue(Of Boolean)() AndAlso RavHydra.IsReady Then
-				RavHydra.Cast(target)
-			End If
-			If Config.Item("BilgeCut").GetValue(Of Boolean)() AndAlso BilgeCut.IsReady Then
-				BilgeCut.Cast(target)
-			End If
-			If Config.Item("Tiamat").GetValue(Of Boolean)() AndAlso Tiamat.IsReady Then
-				Tiamat.Cast(target)
-			End If
-			If Config.Item("RanOmen").GetValue(Of Boolean)() AndAlso RanOmen.IsReady Then
-				For Each enemy In ObjectManager.Get(Of Obj_AI_Hero)()
-					If Utility.IsValidTarget(enemy, 490) Then
-						RanOmen.Cast(player)
-					End If
-				Next
-			End If
-
 		End If
+
+		'Do Attack Items
+		If Config.Item("BoTRK").GetValue(Of Boolean)() AndAlso BoTRK.IsReady Then BoTRK.Cast(target)
+		If Config.Item("RavHydra").GetValue(Of Boolean)() AndAlso RavHydra.IsReady Then RavHydra.Cast(target)
+		If Config.Item("BilgeCut").GetValue(Of Boolean)() AndAlso BilgeCut.IsReady Then BilgeCut.Cast(target)
+		If Config.Item("Tiamat").GetValue(Of Boolean)() AndAlso Tiamat.IsReady Then Tiamat.Cast(target)
+		If Config.Item("RanOmen").GetValue(Of Boolean)() AndAlso RanOmen.IsReady AndAlso player.Distance(target) <= 490 Then RanOmen.Cast(player)
+
 	End Sub
 
 	Shared Sub Farm()
@@ -360,12 +343,10 @@ Public Class yetAnotherUdyr
 
 			If (useR AndAlso R.IsReady) OrElse (useQ AndAlso Q.IsReady) Then
 				For Each minion In minions
-					If useQ Then
-						Q.Cast()
-					End If
-					If useR Then
-						R.Cast()
-					End If
+
+					If useQ Then Q.Cast()
+					If useR Then R.Cast()
+
 				Next
 			End If
 		End If
@@ -391,20 +372,15 @@ Public Class yetAnotherUdyr
 			Dim smiteDamage = Math.Max(20 * player.Level + 370, Math.Max(30 * player.Level + 330, Math.Max(40 * player.Level + 240, 50 * player.Level + 100)))
 			For Each mob In mobs
 
-				If Not smiteList.Contains(mob.SkinName) OrElse Not mob.IsValidTarget(790) OrElse Not smiteDamage >= mob.Health Then
-					Continue For
-				End If
+				If Not smiteList.Contains(mob.SkinName) OrElse Not mob.IsValidTarget(790) OrElse Not smiteDamage >= mob.Health Then Continue For
 
 				Select Case Config.Item("Auto Smite").GetValue(Of StringList)().SelectedIndex
 					Case 0
-						If (mob.SkinName = "AncientGolem" OrElse mob.SkinName = "LizardElder") Then
-							player.SummonerSpellbook.CastSpell(smiteSpell, mob)
-						End If
+						If (mob.SkinName = "AncientGolem" OrElse mob.SkinName = "LizardElder") Then player.SummonerSpellbook.CastSpell(smiteSpell, mob)
+						Exit Select
 					Case 1
-						If (mob.SkinName = "Dragon" OrElse mob.SkinName = "Worm") Then
-							player.SummonerSpellbook.CastSpell(smiteSpell, mob)
-							Exit Select
-						End If
+						If (mob.SkinName = "Dragon" OrElse mob.SkinName = "Worm") Then player.SummonerSpellbook.CastSpell(smiteSpell, mob)
+						Exit Select
 					Case 2
 						player.SummonerSpellbook.CastSpell(smiteSpell, mob)
 						Exit Select
@@ -425,20 +401,10 @@ Public Class yetAnotherUdyr
 				If R.IsReady Then totalDamage += DamageLib.getDmg(enemy, DamageLib.SpellType.R, DamageLib.StageType.Default)
 
 				'Items
-				If BilgeCut.IsReady AndAlso Config.Item("BilgeCut").GetValue(Of Boolean)() Then
-					totalDamage += DamageLib.getDmg(enemy, DamageLib.SpellType.BILGEWATER, DamageLib.StageType.Default)
-				End If
-				If BoTRK.IsReady AndAlso Config.Item("BoTRK").GetValue(Of Boolean)() Then
-					totalDamage += DamageLib.getDmg(enemy, DamageLib.SpellType.BOTRK, DamageLib.StageType.Default)
-
-				End If
-				If RavHydra.IsReady AndAlso Config.Item("RavHydra").GetValue(Of Boolean)() Then
-					totalDamage += DamageLib.getDmg(enemy, DamageLib.SpellType.HYDRA, DamageLib.StageType.Default)
-
-				End If
-				If Tiamat.IsReady AndAlso Config.Item("Tiamat").GetValue(Of Boolean)() Then
-					totalDamage += DamageLib.getDmg(enemy, DamageLib.SpellType.TIAMAT, DamageLib.StageType.Default)
-				End If
+				If BilgeCut.IsReady AndAlso Config.Item("BilgeCut").GetValue(Of Boolean)() Then totalDamage += DamageLib.getDmg(enemy, DamageLib.SpellType.BILGEWATER, DamageLib.StageType.Default)
+				If BoTRK.IsReady AndAlso Config.Item("BoTRK").GetValue(Of Boolean)() Then totalDamage += DamageLib.getDmg(enemy, DamageLib.SpellType.BOTRK, DamageLib.StageType.Default)
+				If RavHydra.IsReady AndAlso Config.Item("RavHydra").GetValue(Of Boolean)() Then totalDamage += DamageLib.getDmg(enemy, DamageLib.SpellType.HYDRA, DamageLib.StageType.Default)
+				If Tiamat.IsReady AndAlso Config.Item("Tiamat").GetValue(Of Boolean)() Then totalDamage += DamageLib.getDmg(enemy, DamageLib.SpellType.TIAMAT, DamageLib.StageType.Default)
 
 				Select Case ((enemy.Health - totalDamage) / enemy.MaxHealth)
 					Case Is >= 0.66
@@ -447,7 +413,6 @@ Public Class yetAnotherUdyr
 						enemyColor(enemy.NetworkId) = System.Drawing.Color.Yellow
 					Case Is <= 0.329
 						enemyColor(enemy.NetworkId) = System.Drawing.Color.Red
-					Case Else
 				End Select
 
 			End If
