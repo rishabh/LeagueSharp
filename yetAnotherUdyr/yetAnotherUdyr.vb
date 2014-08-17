@@ -154,16 +154,19 @@ Public Class yetAnotherUdyr
 		Config.SubMenu("Drawing").AddItem(New MenuItem("Draw", "Draw").SetValue(True))
 		''Enemy Status
 		For Each enemy As Obj_AI_Hero In ObjectManager.Get(Of Obj_AI_Hero)()
-			If enemy.IsEnemy Then
-				enemyColor.Add(enemy.NetworkId, System.Drawing.Color.Green)
-				Config.SubMenu("Drawing").AddSubMenu(New Menu(enemy.ChampionName, enemy.ChampionName))
-				Config.SubMenu("Drawing").SubMenu(enemy.ChampionName).AddItem(New MenuItem(enemy.NetworkId & "E", "Enabled").SetValue(True))
-				Config.SubMenu("Drawing").SubMenu(enemy.ChampionName).AddItem(New MenuItem(enemy.NetworkId & "KC", "Killable Circle").SetValue(True))
-				Config.SubMenu("Drawing").SubMenu(enemy.ChampionName).AddItem(New MenuItem(enemy.NetworkId & "HP", "HP").SetValue(True))
-				Config.SubMenu("Drawing").SubMenu(enemy.ChampionName).AddItem(New MenuItem(enemy.NetworkId & "MP", "MP").SetValue(True))
-				Config.SubMenu("Drawing").SubMenu(enemy.ChampionName).AddItem(New MenuItem(enemy.NetworkId & "R", "Range").SetValue(New StringList({"Basic", "Q", "W", "E", "R", "None"})))
-				Config.SubMenu("Drawing").SubMenu(enemy.ChampionName).AddItem(New MenuItem(enemy.NetworkId & "RC", "Range Color").SetValue(New Circle(False, System.Drawing.Color.Gray)))
-			End If
+			'Skip to next Obj_Ai_Hero if its an ally
+			If enemy.IsAlly Then Continue For
+
+			'Add the enemy to our dictionary, so we can update the colors
+			enemyColor.Add(enemy.NetworkId, System.Drawing.Color.Green)
+			'Assign a menu to each enemy
+			Config.SubMenu("Drawing").AddSubMenu(New Menu(enemy.ChampionName, enemy.ChampionName))
+			Config.SubMenu("Drawing").SubMenu(enemy.ChampionName).AddItem(New MenuItem(enemy.NetworkId & "E", "Enabled").SetValue(True))
+			Config.SubMenu("Drawing").SubMenu(enemy.ChampionName).AddItem(New MenuItem(enemy.NetworkId & "KC", "Killable Circle").SetValue(True))
+			Config.SubMenu("Drawing").SubMenu(enemy.ChampionName).AddItem(New MenuItem(enemy.NetworkId & "HP", "HP").SetValue(True))
+			Config.SubMenu("Drawing").SubMenu(enemy.ChampionName).AddItem(New MenuItem(enemy.NetworkId & "MP", "MP").SetValue(True))
+			Config.SubMenu("Drawing").SubMenu(enemy.ChampionName).AddItem(New MenuItem(enemy.NetworkId & "R", "Range").SetValue(New StringList({"Basic", "Q", "W", "E", "R"})))
+			Config.SubMenu("Drawing").SubMenu(enemy.ChampionName).AddItem(New MenuItem(enemy.NetworkId & "RC", "Range Color").SetValue(New Circle(True, System.Drawing.Color.Gray)))
 		Next
 		Config.AddToMainMenu()
 
@@ -178,11 +181,10 @@ Public Class yetAnotherUdyr
 	'Orbwalk Events Here, farm goes here
 	Shared Sub Orbwalking_BeforeAttack(args As Orbwalking.BeforeAttackEventArgs)
 		'if farm key is pressed
-		If Config.Item("Farm Key").GetValue(Of KeyBind).Active AndAlso ((player.Mana / player.MaxMana) * 100) >= Config.Item("Farm-Mana").GetValue(Of Slider).Value Then
-			Farm()
-		End If
+		If Config.Item("Farm Key").GetValue(Of KeyBind).Active AndAlso Orbwalking.CanMove(50) AndAlso ((player.Mana / player.MaxMana) * 100) >= Config.Item("Farm-Mana").GetValue(Of Slider).Value Then		Farm()
 	End Sub
-	'Auto level up skill, Andi needs to fix this >.>
+
+	'Auto level up skill
 	Shared Sub Unit_OnLevelUp(sender As Obj_AI_Base, args As CustomEvents.Unit.OnLevelUpEventArgs)
 		If sender.IsMe AndAlso Config.Item("Auto Level").GetValue(Of Boolean)() Then
 			If Config.Item("Style").GetValue(Of StringList)().SelectedIndex = 0 Then
@@ -192,79 +194,60 @@ Public Class yetAnotherUdyr
 			End If
 		End If
 	End Sub
+
 	'If KillableEnemies are in range and the config are on
 	Shared Sub CanKillEnemiesIgnite(sender As Object, args As Igniter.IgniteEventArgs)
-		If Config.Item("Auto Ignite").GetValue(Of StringList)().SelectedIndex = 2 Then
-			'ignite first killable enemy
-			ignite.Cast(args.Enemies(0))
-		End If
+		If Config.Item("Auto Ignite").GetValue(Of StringList)().SelectedIndex = 2 Then ignite.Cast(args.Enemies(0))
 	End Sub
 	Shared Sub CanKillStealEnemiesIgnite(sender As Object, args As Igniter.IgniteEventArgs)
-		If Config.Item("Auto Ignite").GetValue(Of StringList)().SelectedIndex = 1 Or Config.Item("Auto Ignite").GetValue(Of StringList)().SelectedIndex = 2 Then
-			ignite.Cast(args.Enemies(0))
-		End If
+		If Config.Item("Auto Ignite").GetValue(Of StringList)().SelectedIndex = 1 Or Config.Item("Auto Ignite").GetValue(Of StringList)().SelectedIndex = 2 Then ignite.Cast(args.Enemies(0))
 	End Sub
 
 	Shared Sub Game_OnGameUpdate(args As EventArgs)
 		If player.IsDead Then Return
 		'If combo key is pressed
-		If Config.Item("Combo Key").GetValue(Of KeyBind).Active Then
-			comboIt()
-		End If
+		If Config.Item("Combo Key").GetValue(Of KeyBind).Active Then comboIt()
 
 		'Smite
-		If hasSmite = True AndAlso Not Config.Item("Auto Smite").GetValue(Of StringList)().SelectedIndex = 3 AndAlso player.SummonerSpellbook.CanUseSpell(smiteSpell) = SpellState.Ready Then
-			castSmite()
-		End If
+		If hasSmite = True AndAlso Not Config.Item("Auto Smite").GetValue(Of StringList)().SelectedIndex = 3 AndAlso player.SummonerSpellbook.CanUseSpell(smiteSpell) = SpellState.Ready Then castSmite()
 
 		'Defensive Items
-		If Config.Item("LoTIS").GetValue(Of Boolean)() AndAlso LoTIS.IsReady Then
-			If ((player.Health / player.MaxHealth) * 100) <= Config.Item("LoTIS-HP-%").GetValue(Of Slider).Value() Then
-				LoTIS.Cast(player)
-			End If
-		End If
+		If Config.Item("LoTIS").GetValue(Of Boolean)() AndAlso LoTIS.IsReady AndAlso ((player.Health / player.MaxHealth) * 100) <= Config.Item("LoTIS-HP-%").GetValue(Of Slider).Value() Then LoTIS.Cast(player)
 
 		'If jungle key is pressed
-		If Config.Item("Jungle Farm Key").GetValue(Of KeyBind).Active AndAlso ((player.Mana / player.MaxMana) * 100) >= Config.Item("Jungle-Mana").GetValue(Of Slider).Value Then
-			jungleFarm()
-		End If
+		If Config.Item("Jungle Farm Key").GetValue(Of KeyBind).Active AndAlso ((player.Mana / player.MaxMana) * 100) >= Config.Item("Jungle-Mana").GetValue(Of Slider).Value Then jungleFarm()
 
 		'If drawing is on
-		If Config.Item("Draw").GetValue(Of Boolean)() Then
-			updateIsKillable()
-		End If
+		If Config.Item("Draw").GetValue(Of Boolean)() Then updateIsKillable()
+
 	End Sub
 #End Region
 #Region "Drawing"
 	Shared Sub Drawing_OnDraw(args As EventArgs)
 		If Config.Item("Draw").GetValue(Of Boolean)() Then
 			For Each enemyVisible As Obj_AI_Hero In ObjectManager.Get(Of Obj_AI_Hero)()
-				If enemyVisible.IsValidTarget Then
+				If Not Utility.IsValidTarget(enemyVisible) OrElse Not Config.Item(enemyVisible.NetworkId & "E").GetValue(Of Boolean)() Then Continue For
 
-					If Config.Item(enemyVisible.NetworkId & "E").GetValue(Of Boolean)() Then
+				'Regular drawing
+				If Config.Item(enemyVisible.NetworkId & "KC").GetValue(Of Boolean)() Then Utility.DrawCircle(enemyVisible.Position, 60, enemyColor(enemyVisible.NetworkId), 2, 15)
+				If Config.Item(enemyVisible.NetworkId & "HP").GetValue(Of Boolean)() Then Drawing.DrawText(Drawing.WorldToScreen(enemyVisible.Position)(0) - 40, Drawing.WorldToScreen(enemyVisible.Position)(1) - 100, System.Drawing.Color.Red, Convert.ToInt32(enemyVisible.Health / enemyVisible.MaxHealth * 100) & "%")
+				If Config.Item(enemyVisible.NetworkId & "MP").GetValue(Of Boolean)() Then Drawing.DrawText(Drawing.WorldToScreen(enemyVisible.Position)(0) + 10, Drawing.WorldToScreen(enemyVisible.Position)(1) - 100, System.Drawing.Color.Violet, Convert.ToInt32(enemyVisible.Mana / enemyVisible.MaxMana * 100) & "%")
 
-						'Regular drawing
-						If Config.Item(enemyVisible.NetworkId & "KC").GetValue(Of Boolean)() Then Utility.DrawCircle(enemyVisible.Position, 60, enemyColor(enemyVisible.NetworkId), 2, 15)
-						If Config.Item(enemyVisible.NetworkId & "HP").GetValue(Of Boolean)() Then Drawing.DrawText(Drawing.WorldToScreen(enemyVisible.Position)(0) - 40, Drawing.WorldToScreen(enemyVisible.Position)(1) - 100, System.Drawing.Color.Red, Convert.ToInt32(enemyVisible.Health / enemyVisible.MaxHealth * 100) & "%")
-						If Config.Item(enemyVisible.NetworkId & "MP").GetValue(Of Boolean)() Then Drawing.DrawText(Drawing.WorldToScreen(enemyVisible.Position)(0) + 10, Drawing.WorldToScreen(enemyVisible.Position)(1) - 100, System.Drawing.Color.BlueViolet, Convert.ToInt32(enemyVisible.Mana / enemyVisible.MaxMana * 100) & "%")
+				'Range of Skills
+				If Not Config.Item(enemyVisible.NetworkId & "RC").GetValue(Of Circle).Active Then Continue For 'If color is off, then go to the next enemy that is visible
+				Select Case Config.Item(enemyVisible.NetworkId & "R").GetValue(Of StringList).SelectedIndex
+					Case 0
+						Utility.DrawCircle(enemyVisible.Position, enemyVisible.BasicAttack.CastRange(0), Config.Item(enemyVisible.NetworkId & "RC").GetValue(Of Circle).Color, 1, 22)
+					Case 1
+						Utility.DrawCircle(enemyVisible.Position, enemyVisible.Spellbook.GetSpell(SpellSlot.Q).SData.CastRange(0), Config.Item(enemyVisible.NetworkId & "RC").GetValue(Of Circle).Color, 1, 22)
+					Case 2
+						Utility.DrawCircle(enemyVisible.Position, enemyVisible.Spellbook.GetSpell(SpellSlot.W).SData.CastRange(0), Config.Item(enemyVisible.NetworkId & "RC").GetValue(Of Circle).Color, 1, 22)
+					Case 3
+						Utility.DrawCircle(enemyVisible.Position, enemyVisible.Spellbook.GetSpell(SpellSlot.E).SData.CastRange(0), Config.Item(enemyVisible.NetworkId & "RC").GetValue(Of Circle).Color, 1, 22)
+					Case 4
+						Utility.DrawCircle(enemyVisible.Position, enemyVisible.Spellbook.GetSpell(SpellSlot.R).SData.CastRange(0), Config.Item(enemyVisible.NetworkId & "RC").GetValue(Of Circle).Color, 1, 22)
+				End Select
 
-						'Range of Skills
-						Select Case Config.Item(enemyVisible.NetworkId & "R").GetValue(Of StringList).SelectedIndex
-							Case 5
-								Exit Select
-							Case 0
-								Utility.DrawCircle(enemyVisible.Position, enemyVisible.BasicAttack.CastRange(0), System.Drawing.Color.White, 0.5, 25)
-							Case 1
-								Utility.DrawCircle(enemyVisible.Position, enemyVisible.Spellbook.GetSpell(SpellSlot.Q).SData.CastRange(0), Config.Item(enemyVisible.NetworkId & "RC").GetValue(Of Circle).Color, 1, 25)
-							Case 2
-								Utility.DrawCircle(enemyVisible.Position, enemyVisible.Spellbook.GetSpell(SpellSlot.W).SData.CastRange(0), Config.Item(enemyVisible.NetworkId & "RC").GetValue(Of Circle).Color, 1, 25)
-							Case 3
-								Utility.DrawCircle(enemyVisible.Position, enemyVisible.Spellbook.GetSpell(SpellSlot.E).SData.CastRange(0), Config.Item(enemyVisible.NetworkId & "RC").GetValue(Of Circle).Color, 1, 25)
-							Case 4
-								Utility.DrawCircle(enemyVisible.Position, enemyVisible.Spellbook.GetSpell(SpellSlot.R).SData.CastRange(0), Config.Item(enemyVisible.NetworkId & "RC").GetValue(Of Circle).Color, 1, 25)
-						End Select
-					End If
-				End If
 			Next
 		End If
 	End Sub
@@ -292,36 +275,18 @@ Public Class yetAnotherUdyr
 		If player.Distance(target) < 300 Then
 
 			'If stun lock is on, the target doesn't have a stun buff, and the spell is ready, then cast bear stun
-			If Config.Item("Stun Lock").GetValue(Of Boolean)() AndAlso E.IsReady() AndAlso Not target.HasBuff("udyrbearstuncheck") Then
-				E.Cast()
-			End If
+			If Config.Item("Stun Lock").GetValue(Of Boolean)() AndAlso E.IsReady() AndAlso Not target.HasBuff("udyrbearstuncheck") Then E.Cast()
 
 			If Config.Item("Style").GetValue(Of StringList)().SelectedIndex = 0 Then
-				If R.IsReady() Then
-					R.Cast()
-				End If
-				If Q.IsReady() Then
-					Q.Cast()
-				End If
-				If E.IsReady AndAlso Not target.HasBuff("udyrbearstuncheck") Then
-					E.Cast()
-				End If
-				If W.IsReady() Then
-					W.Cast()
-				End If
+				If R.IsReady() Then R.Cast()
+				If Q.IsReady() Then Q.Cast()
+				If E.IsReady AndAlso Not target.HasBuff("udyrbearstuncheck") Then E.Cast()
+				If W.IsReady() Then W.Cast()
 			Else
-				If E.IsReady AndAlso Not target.HasBuff("udyrbearstuncheck") Then
-					E.Cast()
-				End If
-				If Q.IsReady() Then
-					Q.Cast()
-				End If
-				If W.IsReady() Then
-					W.Cast()
-				End If
-				If R.IsReady() Then
-					R.Cast()
-				End If
+				If E.IsReady AndAlso Not target.HasBuff("udyrbearstuncheck") Then E.Cast()
+				If Q.IsReady() Then Q.Cast()
+				If W.IsReady() Then W.Cast()
+				If R.IsReady() Then R.Cast()
 			End If
 		End If
 
@@ -335,41 +300,26 @@ Public Class yetAnotherUdyr
 	End Sub
 
 	Shared Sub Farm()
-		If Not Orbwalking.CanMove(50) Then Return
 		Dim minions = MinionManager.GetMinions(player.ServerPosition, 500.0F)
 		If minions.Count > 2 Then
-			Dim useR = Config.Item("Use-R-Farm").GetValue(Of Boolean)()
-			Dim useQ = Config.Item("Use-Q-Farm").GetValue(Of Boolean)()
-
-			If (useR AndAlso R.IsReady) OrElse (useQ AndAlso Q.IsReady) Then
-				For Each minion In minions
-
-					If useQ Then Q.Cast()
-					If useR Then R.Cast()
-
-				Next
-			End If
+			If Config.Item("Use-R-Farm").GetValue(Of Boolean)() AndAlso R.IsReady Then R.Cast()
+			If Config.Item("Use-Q-Farm").GetValue(Of Boolean)() AndAlso Q.IsReady() Then Q.Cast()
 		End If
 	End Sub
 	Shared Sub jungleFarm()
 
 		Dim jungleMobs = MinionManager.GetMinions(player.ServerPosition, 700, MinionTypes.All, MinionTeam.Neutral, MinionOrderTypes.MaxHealth)
 		If jungleMobs.Count > 0 Then
-			If Config.Item("Use-R-Jungle").GetValue(Of Boolean)() AndAlso R.IsReady() Then
-				R.Cast()
-			End If
-			If Config.Item("Use-Q-Jungle").GetValue(Of Boolean)() AndAlso Q.IsReady() Then
-				Q.Cast()
-			End If
-			If Config.Item("Use-W-Jungle").GetValue(Of Boolean)() AndAlso W.IsReady() Then
-				W.Cast()
-			End If
+			If Config.Item("Use-R-Jungle").GetValue(Of Boolean)() AndAlso R.IsReady() Then R.Cast()
+			If Config.Item("Use-Q-Jungle").GetValue(Of Boolean)() AndAlso Q.IsReady() Then Q.Cast()
+			If Config.Item("Use-W-Jungle").GetValue(Of Boolean)() AndAlso W.IsReady() Then W.Cast()
 		End If
 	End Sub
 	Shared Sub castSmite()
 		Dim mobs = MinionManager.GetMinions(player.ServerPosition, 900.0F, MinionTypes.All, MinionTeam.Neutral, MinionOrderTypes.MaxHealth)
 		If mobs.Count > 0 Then
-			Dim smiteDamage = Math.Max(20 * player.Level + 370, Math.Max(30 * player.Level + 330, Math.Max(40 * player.Level + 240, 50 * player.Level + 100)))
+			Dim playerLevel = player.Level
+			Dim smiteDamage = Math.Max(20 * playerLevel + 370, Math.Max(30 * playerLevel + 330, Math.Max(40 * playerLevel + 240, 50 * playerLevel + 100)))
 			For Each mob In mobs
 
 				If Not smiteList.Contains(mob.SkinName) OrElse Not mob.IsValidTarget(790) OrElse Not smiteDamage >= mob.Health Then Continue For
@@ -377,13 +327,10 @@ Public Class yetAnotherUdyr
 				Select Case Config.Item("Auto Smite").GetValue(Of StringList)().SelectedIndex
 					Case 0
 						If (mob.SkinName = "AncientGolem" OrElse mob.SkinName = "LizardElder") Then player.SummonerSpellbook.CastSpell(smiteSpell, mob)
-						Exit Select
 					Case 1
 						If (mob.SkinName = "Dragon" OrElse mob.SkinName = "Worm") Then player.SummonerSpellbook.CastSpell(smiteSpell, mob)
-						Exit Select
 					Case 2
 						player.SummonerSpellbook.CastSpell(smiteSpell, mob)
-						Exit Select
 				End Select
 			Next
 		End If
