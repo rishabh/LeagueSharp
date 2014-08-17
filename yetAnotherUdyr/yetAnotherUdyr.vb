@@ -48,7 +48,6 @@ Public Class yetAnotherUdyr
 
 	'Drawing
 	Shared enemyColor As New Dictionary(Of Integer, System.Drawing.Color)
-	Shared enemyText As New Dictionary(Of Integer, String)
 
 	Public Shared Sub Main(ByVal arg() As String)
 		AddHandler CustomEvents.Game.OnGameLoad, AddressOf Game_onGameLoad
@@ -211,8 +210,8 @@ Public Class yetAnotherUdyr
 		'Smite
 		If hasSmite = True AndAlso Not Config.Item("Auto Smite").GetValue(Of StringList)().SelectedIndex = 3 AndAlso player.SummonerSpellbook.CanUseSpell(smiteSpell) = SpellState.Ready Then castSmite()
 
-		'Defensive Items
-		If Config.Item("LoTIS").GetValue(Of Boolean)() AndAlso LoTIS.IsReady AndAlso ((player.Health / player.MaxHealth) * 100) <= Config.Item("LoTIS-HP-%").GetValue(Of Slider).Value() Then LoTIS.Cast(player)
+		'Defensive Items (currently only LoTIS)
+		If Config.Item("LoTIS").GetValue(Of Boolean)() AndAlso LoTIS.IsReady AndAlso ((player.Health / player.MaxHealth) * 100) <= Config.Item("LoTIS-HP-%").GetValue(Of Slider).Value() Then LoTIS.Cast()
 
 		'If jungle key is pressed
 		If Config.Item("Jungle Farm Key").GetValue(Of KeyBind).Active AndAlso ((player.Mana / player.MaxMana) * 100) >= Config.Item("Jungle-Mana").GetValue(Of Slider).Value Then jungleFarm()
@@ -292,10 +291,10 @@ Public Class yetAnotherUdyr
 
 		'Do Attack Items
 		If Config.Item("BoTRK").GetValue(Of Boolean)() AndAlso BoTRK.IsReady Then BoTRK.Cast(target)
-		If Config.Item("RavHydra").GetValue(Of Boolean)() AndAlso RavHydra.IsReady Then RavHydra.Cast(target)
+		If Config.Item("RavHydra").GetValue(Of Boolean)() AndAlso RavHydra.IsReady Then RavHydra.Cast()
 		If Config.Item("BilgeCut").GetValue(Of Boolean)() AndAlso BilgeCut.IsReady Then BilgeCut.Cast(target)
 		If Config.Item("Tiamat").GetValue(Of Boolean)() AndAlso Tiamat.IsReady Then Tiamat.Cast(target)
-		If Config.Item("RanOmen").GetValue(Of Boolean)() AndAlso RanOmen.IsReady AndAlso player.Distance(target) <= 490 Then RanOmen.Cast(player)
+		If Config.Item("RanOmen").GetValue(Of Boolean)() AndAlso RanOmen.IsReady AndAlso player.Distance(target) <= 490 Then RanOmen.Cast()
 
 	End Sub
 
@@ -318,10 +317,11 @@ Public Class yetAnotherUdyr
 	Shared Sub castSmite()
 		Dim mobs = MinionManager.GetMinions(player.ServerPosition, 900.0F, MinionTypes.All, MinionTeam.Neutral, MinionOrderTypes.MaxHealth)
 		If mobs.Count > 0 Then
+			'Initialize 
 			Dim playerLevel = player.Level
+			'Get smite damage
 			Dim smiteDamage = Math.Max(20 * playerLevel + 370, Math.Max(30 * playerLevel + 330, Math.Max(40 * playerLevel + 240, 50 * playerLevel + 100)))
 			For Each mob In mobs
-
 				If Not smiteList.Contains(mob.SkinName) OrElse Not mob.IsValidTarget(790) OrElse Not smiteDamage >= mob.Health Then Continue For
 
 				Select Case Config.Item("Auto Smite").GetValue(Of StringList)().SelectedIndex
