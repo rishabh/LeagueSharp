@@ -1,3 +1,6 @@
+Compiled assemblies can be found here: https://github.com/FlapperDoodlez/LeagueSharp/releases
+
+
 yetAnotherRangeIndicator:
 To be used as a template for people just getting started with LeagueSharp.
 
