@@ -40,9 +40,9 @@ Public Class yetAnotherUdyr
 	Shared BoTRK As New Items.Item(3153, 425)
 	Shared RavHydra As New Items.Item(3074, 375)
 	Shared Tiamat As New Items.Item(3077, 375)
+	Shared RanOmen As New Items.Item(3143, 490)
 	''Defensive - minus 10 range
 	Shared LoTIS As New Items.Item(3190, 590)
-	Shared RanOmen As New Items.Item(3143, 490)
 
 	'Drawing
 	Shared enemyColor As New Dictionary(Of Integer, System.Drawing.Color)
