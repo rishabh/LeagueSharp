@@ -201,7 +201,7 @@ Public Class yetAnotherUdyr
 		If Config.Item("Combo Key").GetValue(Of KeyBind).Active Then ComboIt()
 
 		'Smite
-		If hasSmite = True AndAlso Not Config.Item("Auto Smite").GetValue(Of StringList)().SelectedIndex = 3 AndAlso player.SummonerSpellbook.CanUseSpell(smiteSpell) = SpellState.Ready Then CastSmite()
+		If hasSmite = True AndAlso Not Config.Item("Auto Smite").GetValue(Of StringList)().SelectedIndex = 4 AndAlso player.SummonerSpellbook.CanUseSpell(smiteSpell) = SpellState.Ready Then CastSmite()
 
 		'Defensive Items (currently only LoTIS)
 		If Config.Item("LoTIS").GetValue(Of Boolean)() AndAlso LoTIS.IsReady AndAlso ((player.Health / player.MaxHealth) * 100) <= Config.Item("LoTIS-HP-%").GetValue(Of Slider).Value() Then LoTIS.Cast(player)
@@ -262,10 +262,9 @@ Public Class yetAnotherUdyr
 
 	Shared Sub Farm()
 		Dim minions = MinionManager.GetMinions(player.ServerPosition, 500.0F)
-		If minions.Count > 2 Then
-			If Config.Item("Use-R-Farm").GetValue(Of Boolean)() AndAlso R.IsReady Then R.Cast()
-			If Config.Item("Use-Q-Farm").GetValue(Of Boolean)() AndAlso Q.IsReady() Then Q.Cast()
-		End If
+		If minions.Count < 3 Then Return
+		If Config.Item("Use-R-Farm").GetValue(Of Boolean)() AndAlso R.IsReady Then R.Cast()
+		If Config.Item("Use-Q-Farm").GetValue(Of Boolean)() AndAlso Q.IsReady() Then Q.Cast()
 	End Sub
 
 	Shared Sub JungleFarm()
