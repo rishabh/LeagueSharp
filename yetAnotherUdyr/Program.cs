@@ -170,7 +170,11 @@ public class yetAnotherUdyr
             return;
         //If combo key is pressed
         if (Config.Item("Combo Key").GetValue<KeyBind>().Active)
+        {
+            Game.PrintChat("Before Combo");
             ComboIt();
+            Game.PrintChat("After Combo");
+        }
 
         //Defensive Items (currently only LoTIS)
         if (Config.Item("LoTIS").GetValue<bool>() && LoTIS.IsReady() && ((player.Health / player.MaxHealth) * 100) <= Config.Item("LoTIS-HP-%").GetValue<Slider>().Value)
@@ -189,11 +193,10 @@ public class yetAnotherUdyr
 
     #region "Methods/Functions"
 
-
     public static void ComboIt()
     {
         //Create target
-        dynamic target = SimpleTs.GetTarget(600f, SimpleTs.DamageType.Magical);
+        var target = SimpleTs.GetTarget(600f, SimpleTs.DamageType.Magical);
 
         if (target == null)
             return;
@@ -201,12 +204,18 @@ public class yetAnotherUdyr
         //Skill order sequence
         if (Geometry.Distance(target) < 300)
         {
+            Game.PrintChat("Before Stun Lock");
+
             //If stun lock is on, the target doesn't have a stun buff, and the spell is ready, then cast bear stun
             if (Config.Item("Stun Lock").GetValue<bool>() && E.IsReady() && !target.HasBuff("udyrbearstuncheck", true))
                 E.Cast();
 
+            Game.PrintChat("After Stun Lock");
+
             if (Config.Item("Style").GetValue<StringList>().SelectedIndex == 0)
             {
+                Game.PrintChat("Phoenix Style");
+
                 if (R.IsReady())
                     R.Cast();
                 if (Q.IsReady())
@@ -218,6 +227,8 @@ public class yetAnotherUdyr
             }
             else
             {
+                Game.PrintChat("Tiger Style");
+
                 if (E.IsReady() && !target.HasBuff("udyrbearstuncheck", true))
                     E.Cast();
                 if (Q.IsReady())
