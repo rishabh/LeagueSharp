@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using LeagueSharp;
@@ -52,28 +52,29 @@ public class yetAnotherDiana
 
     // First Start
     static void QuickStart()
-    {
-        if (!Player.Gold.Equals(475f) && Game.ClockTime > 100f)
-            return;
+	{
+		if (!Player.Gold.Equals (475f) && Game.Time > 80f)
+			return;
 
-        switch (Config.Item("Quick Start").GetValue<StringList>().SelectedIndex)
-        {
-            //Quick Start for Summoner's Rift
-            case 1:
-                Packet.C2S.BuyItem.Encoded(new Packet.C2S.BuyItem.Struct(3340, Player.NetworkId)).Send(); //Warding Totem
-                Packet.C2S.BuyItem.Encoded(new Packet.C2S.BuyItem.Struct(2003, Player.NetworkId)).Send(); //Health Potion
-                Packet.C2S.BuyItem.Encoded(new Packet.C2S.BuyItem.Struct(2004, Player.NetworkId)).Send(); //Mana Potion
-                Packet.C2S.BuyItem.Encoded(new Packet.C2S.BuyItem.Struct(2004, Player.NetworkId)).Send(); //Mana Potion
-                Packet.C2S.BuyItem.Encoded(new Packet.C2S.BuyItem.Struct(2041, Player.NetworkId)).Send(); //Crystalline Flask
-                break;
-            case 2:
-                Packet.C2S.BuyItem.Encoded(new Packet.C2S.BuyItem.Struct(3340, Player.NetworkId)).Send(); //Warding Totem
-                Packet.C2S.BuyItem.Encoded(new Packet.C2S.BuyItem.Struct(2041, Player.NetworkId)).Send(); //Crystalline Flask
-                Packet.C2S.BuyItem.Encoded(new Packet.C2S.BuyItem.Struct(2003, Player.NetworkId)).Send(); //Health Potion
-                Packet.C2S.BuyItem.Encoded(new Packet.C2S.BuyItem.Struct(2003, Player.NetworkId)).Send(); //Health Potion
-                Packet.C2S.BuyItem.Encoded(new Packet.C2S.BuyItem.Struct(2003, Player.NetworkId)).Send(); //Health Potion
-                break;
-        }
+		if (Smite == SpellSlot.Unknown)
+		{	switch (Config.Item ("Quick Start").GetValue<StringList> ().SelectedIndex) {
+			//Quick Start for Summoner's Rift
+			case 1:
+				Packet.C2S.BuyItem.Encoded (new Packet.C2S.BuyItem.	Struct (3340, Player.NetworkId)).Send (); //Warding Totem
+				Packet.C2S.BuyItem.Encoded (new Packet.C2S.BuyItem.Struct (2003, Player.NetworkId)).Send (); //Health Potion
+				Packet.C2S.BuyItem.Encoded (new Packet.C2S.BuyItem.Struct (2004, Player.NetworkId)).Send (); //Mana Potion
+				Packet.C2S.BuyItem.Encoded (new Packet.C2S.BuyItem.Struct (2004, Player.NetworkId)).Send (); //Mana Potion
+				Packet.C2S.BuyItem.Encoded (new Packet.C2S.BuyItem.Struct (2041, Player.NetworkId)).Send (); //Crystalline Flask
+				break;
+			case 2:
+				Packet.C2S.BuyItem.Encoded (new Packet.C2S.BuyItem.Struct (3340, Player.NetworkId)).Send (); //Warding Totem
+				Packet.C2S.BuyItem.Encoded (new Packet.C2S.BuyItem.Struct (2041, Player.NetworkId)).Send (); //Crystalline Flask
+				Packet.C2S.BuyItem.Encoded (new Packet.C2S.BuyItem.Struct (2003, Player.NetworkId)).Send (); //Health Potion
+				Packet.C2S.BuyItem.Encoded (new Packet.C2S.BuyItem.Struct (2003, Player.NetworkId)).Send (); //Health Potion
+				Packet.C2S.BuyItem.Encoded (new Packet.C2S.BuyItem.Struct (2003, Player.NetworkId)).Send (); //Health Potion
+				break;
+			}
+		}
         if (Config.Item("Quick Start").GetValue<StringList>().SelectedIndex == 3 && Smite != SpellSlot.Unknown)
         {
             Packet.C2S.BuyItem.Encoded(new Packet.C2S.BuyItem.Struct(3340, Player.NetworkId)).Send(); //Warding Totem
@@ -372,7 +373,8 @@ public class yetAnotherDiana
             }
             else if (Config.Item("Harass-Key").GetValue<KeyBind>().Active)
             {
-                MoveTo(Game.CursorPos);
+				if (Config.Item("Harass-MoveTo").GetValue<Bool>())
+					MoveTo(Game.CursorPos);
                 Harass(target);
             }
         }
@@ -576,10 +578,9 @@ public class yetAnotherDiana
 
     private static int getMinionsHit(Obj_AI_Base target)
     {
-        var qCircle = 190;
         var laneMinions = MinionManager.GetMinions(ObjectManager.Player.ServerPosition, _q.Range);
 
-        return laneMinions.Count(minion => Vector3.Distance(minion.ServerPosition, target.ServerPosition) <= qCircle);
+        return laneMinions.Count(minion => Vector3.Distance(minion.ServerPosition, target.ServerPosition) <= 190);
     }
 
     public static void JungleFarm()
@@ -619,9 +620,8 @@ public class yetAnotherDiana
             CheckFlagKS = false;
 
 
-        foreach (var target in ObjectManager.Get<Obj_AI_Hero>().Where(target => target.IsValidTarget(_q.Range) && ((Utility.UnderTurret(target) && (Player.Health / Player.MaxHealth > 0.6)) || !Utility.UnderTurret(target))))
+		foreach (var target in ObjectManager.Get<Obj_AI_Hero>().Where(target => target.IsValidTarget(_r.Range)))
         {
-
             if (CheckFlagKS && target.HasBuff("dianamoonlight", true))
             {
                 _r.Cast(target, Config.Item("Packet Casting").GetValue<bool>());
@@ -638,11 +638,11 @@ public class yetAnotherDiana
             {
                 _q.Cast(target, Config.Item("Packet Casting").GetValue<bool>());
             }
-            else if (!Config.Item("Killsteal-Use-R").GetValue<bool>())
+			else if (!Config.Item("Killsteal-Use-R").GetValue<bool>() || (Utility.UnderTurret(target,true) && (Player.Health / Player.MaxHealth < 0.6)))
             {
                 return;
             }
-            else if (_r.IsReady() && _r.GetDamage(target) - 10 >= target.Health && Player.Distance(target) <= _r.Range - 10)
+            else if (_r.IsReady() && _r.GetDamage(target) - 10 >= target.Health && Player.Distance(target) <= _r.Range - 5)
             {
                 _r.Cast(target, Config.Item("Packet Casting").GetValue<bool>());
             }
