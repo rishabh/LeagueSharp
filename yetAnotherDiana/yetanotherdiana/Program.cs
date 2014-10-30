@@ -10,7 +10,7 @@ public class yetAnotherDiana
 
     //Script Information
 
-    private static string versionNumber = "0.9.9.9";
+    private static string versionNumber = "1.0.0.0";
 
     //Ease of use
     private static Obj_AI_Hero Player = ObjectManager.Player;
@@ -282,7 +282,7 @@ public class yetAnotherDiana
     //Interrupt + GapCloser
     static void AntiGapcloserOnOnEnemyGapcloser(ActiveGapcloser gapcloser)
     {
-        if (Config.Item("GapCloser-Use-W").GetValue<bool>())
+		if (Config.Item("GapCloser-Use-W").GetValue<bool>() && _w.IsReady())
             _w.Cast();
     }
 
@@ -291,21 +291,20 @@ public class yetAnotherDiana
         if (Config.Item("Interrupt-Enabled").GetValue<StringList>().SelectedIndex == 2 || Player.HasBuff("Recall"))
             return;
         Console.WriteLine("Interrupter: " + spell.ChampionName);
-        if (Config.Item("Interrupt-Use-E").GetValue<bool>() && Player.Distance(unit) <= _e.Range)
+		if (Config.Item("Interrupt-Use-E").GetValue<bool>() && _e.IsReady() && Player.Distance(unit) <= _e.Range)
             _e.Cast();
-        else if (Player.Distance(unit) <= _r.Range && (Config.Item("Interrupt-Use-R").GetValue<StringList>().SelectedIndex == 1 || (Config.Item("Interrupt-Use-R").GetValue<StringList>().SelectedIndex == 0 && spell.DangerLevel == InterruptableDangerLevel.High)))
+		else if (_r.IsReady() && Player.Distance(unit) <= _r.Range && (Config.Item("Interrupt-Use-R").GetValue<StringList>().SelectedIndex == 1 || (Config.Item("Interrupt-Use-R").GetValue<StringList>().SelectedIndex == 0 && spell.DangerLevel == InterruptableDangerLevel.High)))
             _r.Cast(unit, Config.Item("Packet Casting").GetValue<bool>());
     }
 
     //Increase chance of casting Q before R hits
     static void GameOnOnGameProcessPacket(GamePacketEventArgs args)
     {
-        if (args.PacketData[0] == Packet.C2S.Cast.Header)
+		if (args.PacketData[0] == Packet.C2S.Cast.Header && _q.IsReady())
         {
             var decoded = Packet.C2S.Cast.Decoded(args.PacketData);
             if (decoded.SourceNetworkId == Player.NetworkId && decoded.Slot == SpellSlot.R && InMisayaCombo)
             {
-
                 Console.WriteLine("Packet Cast");
                 _q.Cast(ObjectManager.GetUnitByNetworkId<Obj_AI_Base>(decoded.TargetNetworkId), Config.Item("Packet Casting").GetValue<bool>());
             }
@@ -314,7 +313,7 @@ public class yetAnotherDiana
 
     static void Obj_AI_Base_OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
     {
-        if (!sender.IsMe || args.SData.Name != "DianaTeleport" || !InMisayaCombo || Player.Distance((Obj_AI_Base)args.Target) > 400)
+		if (!sender.IsMe || args.SData.Name != "DianaTeleport" || !InMisayaCombo || Player.Distance((Obj_AI_Base)args.Target) > 400 || !_q.IsReady())
             return;
         Console.WriteLine("Process Spell");
         _q.Cast((Obj_AI_Base)args.Target, Config.Item("Packet Casting").GetValue<bool>());
@@ -361,7 +360,7 @@ public class yetAnotherDiana
         if (target != null)
         {
             //Double Check
-            if (InMisayaCombo && Player.Distance(target) <= 500)
+			if (InMisayaCombo && Player.Distance(target) <= 500 && _q.IsReady())
             {
                 _q.Cast(target, Config.Item("Packet Casting").GetValue<bool>());
             }
@@ -433,13 +432,13 @@ public class yetAnotherDiana
         if (Config.Item("BoTRK").GetValue<bool>() && BoTRK.IsReady())
             BoTRK.Cast(target);
         if (Config.Item("RavHydra").GetValue<bool>() && RavHydra.IsReady())
-            Items.UseItem(RavHydra.Id, target);
+			Items.UseItem(RavHydra.Id, Player);
         if (Config.Item("BilgeCut").GetValue<bool>() && BilgeCut.IsReady())
             BilgeCut.Cast(target);
         if (Config.Item("Tiamat").GetValue<bool>() && Tiamat.IsReady())
-            Items.UseItem(Tiamat.Id, target);
+			Items.UseItem(Tiamat.Id, Player);
         if (Config.Item("RanOmen").GetValue<bool>() && RanOmen.IsReady() && Player.Distance(target) <= 490)
-            Items.UseItem(RanOmen.Id, target);
+            Items.UseItem(RanOmen.Id, Player);
 
     }
 
@@ -452,7 +451,7 @@ public class yetAnotherDiana
         if (Environment.TickCount > JumpToTargetTick + 1000)
             JumpToTargetFlag = false;
 
-        if (JumpToTargetFlag)
+		if (JumpToTargetFlag)
         {
             foreach (var minion in MinionManager.GetMinions(Player.Position, _r.Range - 10, MinionTypes.All, MinionTeam.NotAlly, MinionOrderTypes.MaxHealth).Where(minion => minion.HasBuff("dianamoonlight") && minion.Distance(target) <= _r.Range - 10))
             {
@@ -464,7 +463,7 @@ public class yetAnotherDiana
 
         //Do Combo
         // Jump To Target if in range
-        if ((Player.Distance(target) <= _r.Range * 2 - 20) && (Player.Distance(target) > _r.Range + 10))
+		if (_q.IsReady() && _r.IsReady() && (Player.Distance(target) <= _r.Range * 2 - 20) && (Player.Distance(target) > _r.Range + 10))
         {
             foreach (var minion in MinionManager.GetMinions(Player.Position, _r.Range - 10, MinionTypes.All, MinionTeam.NotAlly, MinionOrderTypes.MaxHealth).Where(minion => _q.GetDamage(minion) < HealthPrediction.GetHealthPrediction(minion, 25) && minion.Distance(target) <= _r.Range - 15))
             {
@@ -500,7 +499,7 @@ public class yetAnotherDiana
                     Console.WriteLine("First R Cast");
                     _r.Cast(target, Config.Item("Packet Casting").GetValue<bool>());
 
-                    for (var i = 0; i < 80; i++)
+					for (var i = 0; i < 80; i++)
                     {
 						if(_q.IsReady())
                         	_q.Cast(target, Config.Item("Packet Casting").GetValue<bool>());
@@ -606,7 +605,7 @@ public class yetAnotherDiana
                 _r.CastOnUnit(jungleMob);
             }
         }
-		if (Config.Item("Use-R-Jungle").GetValue<StringList>().SelectedIndex == 1 7& _r.IsReady())
+		if (Config.Item("Use-R-Jungle").GetValue<StringList>().SelectedIndex == 1 && _r.IsReady())
             _r.CastOnUnit(jungleMob);
     }
     //<--------------------------->
