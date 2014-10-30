@@ -373,7 +373,7 @@ public class yetAnotherDiana
             }
             else if (Config.Item("Harass-Key").GetValue<KeyBind>().Active)
             {
-				if (Config.Item("Harass-MoveTo").GetValue<Bool>())
+				if (Config.Item("Harass-MoveTo").GetValue<bool>())
 					MoveTo(Game.CursorPos);
                 Harass(target);
             }
@@ -490,10 +490,10 @@ public class yetAnotherDiana
             CheckFlag = false;
         }
 
-        if (_r.IsReady() && Player.Distance(target) <= _r.Range)
+		if (_r.IsReady() && Player.Distance(target) <= _r.Range)
         {
 
-            if (_q.IsReady())
+			if (_q.IsReady() && Player.Mana > Player.Spellbook.GetSpell(SpellSlot.Q).ManaCost + Player.Spellbook.GetSpell(SpellSlot.R).ManaCost)
             {
                 if (Player.Distance(target) > 500)
                 {
@@ -502,7 +502,8 @@ public class yetAnotherDiana
 
                     for (var i = 0; i < 80; i++)
                     {
-                        _q.Cast(target, Config.Item("Packet Casting").GetValue<bool>());
+						if(_q.IsReady())
+                        	_q.Cast(target, Config.Item("Packet Casting").GetValue<bool>());
                         if (!_q.IsReady())
                             Console.WriteLine("Not Ready");
                     }
@@ -591,21 +592,21 @@ public class yetAnotherDiana
 
         var jungleMob = jungleMobs.Last();
 
-        if (Config.Item("Use-W-Jungle").GetValue<bool>() && ((Player.Health / Player.MaxHealth * 100 < 10) || (jungleMobs.Count > 1)))
-            _w.Cast();
+		if (Config.Item("Use-W-Jungle").GetValue<bool>() && _w.IsReady() && ((Player.Health / Player.MaxHealth * 100 < 10) || (jungleMobs.Count > 1)))
+			_w.Cast(Config.Item("Packet Casting").GetValue<bool>());
 
         if (Player.GetAutoAttackDamage(jungleMob) * 3 > jungleMob.Health)
             return;
 
-        if (Config.Item("Use-Q-Jungle").GetValue<bool>())
+		if (Config.Item("Use-Q-Jungle").GetValue<bool>() && _q.IsReady())
         {
             _q.Cast(jungleMob.Position);
-            if (_r.IsReady() && jungleMob.HasBuff("dianamoonlight", true) && Config.Item("Use-R-Jungle").GetValue<StringList>().SelectedIndex == 0)
+			if (Config.Item("Use-R-Jungle").GetValue<StringList>().SelectedIndex == 0 && _r.IsReady() && jungleMob.HasBuff("dianamoonlight", true))
             {
                 _r.CastOnUnit(jungleMob);
             }
         }
-        if (Config.Item("Use-R-Jungle").GetValue<StringList>().SelectedIndex == 1)
+		if (Config.Item("Use-R-Jungle").GetValue<StringList>().SelectedIndex == 1 7& _r.IsReady())
             _r.CastOnUnit(jungleMob);
     }
     //<--------------------------->
@@ -665,7 +666,7 @@ public class yetAnotherDiana
                 }
             }
 
-            if (Config.Item("Killsteal-Use-Ignite").GetValue<bool>() && Ignite != SpellSlot.Unknown && Player.SummonerSpellbook.CanUseSpell(Ignite) == SpellState.Ready && Player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite) - 5 >= target.Health)
+            if (Config.Item("Killsteal-Use-Ignite").GetValue<bool>() && Ignite != SpellSlot.Unknown && Player.SummonerSpellbook.CanUseSpell(Ignite) == SpellState.Ready && Player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite) - 10 >= target.Health)
                 Player.SummonerSpellbook.CastSpell(Ignite, target);
 
         }
@@ -759,7 +760,7 @@ public class yetAnotherDiana
         if (_q.IsReady() && Player.Distance(target) < _q.Range - 25)
             _q.CastIfHitchanceEquals(target, HitChance.VeryHigh, Config.Item("Packet Casting").GetValue<bool>());
         if (_w.IsReady() && Player.Distance(target) < _w.Range - 15)
-            _w.Cast();
+			_w.Cast(Config.Item("Packet Casting").GetValue<bool>());
     }
 
     static void MoveTo(Vector3 position)
@@ -815,7 +816,7 @@ public class yetAnotherDiana
         foreach (var enemyVisible in ObjectManager.Get<Obj_AI_Hero>().Where(enemyVisible => enemyVisible.IsValidTarget() && Config.Item(enemyVisible.ChampionName + "E").GetValue<bool>()))
         {
             //Regular drawing
-            if (Config.Item(enemyVisible.NetworkId + "KC").GetValue<bool>())
+			if (Config.Item(enemyVisible.ChampionName + "KC").GetValue<bool>())
                 Utility.DrawCircle(enemyVisible.Position, 60, enemyColor[enemyVisible.ChampionName], 2, 15);
             if (Config.Item(enemyVisible.ChampionName + "HP").GetValue<bool>())
                 Drawing.DrawText(Drawing.WorldToScreen(enemyVisible.Position)[0] - 40, Drawing.WorldToScreen(enemyVisible.Position)[1] - 100, System.Drawing.Color.Red, Convert.ToInt32(enemyVisible.Health / enemyVisible.MaxHealth * 100) + "%");
