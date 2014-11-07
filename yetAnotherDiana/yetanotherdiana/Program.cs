@@ -10,7 +10,7 @@ public class yetAnotherDiana
 
     //Script Information
 
-    private static string versionNumber = "1.0.0.0";
+    private static string versionNumber = "1.0.0.1";
 
     //Ease of use
     private static Obj_AI_Hero Player = ObjectManager.Player;
@@ -152,6 +152,7 @@ public class yetAnotherDiana
         //Farm
         Config.AddSubMenu(new Menu("Farm", "Farm"));
         Config.SubMenu("Farm").AddItem(new MenuItem("Farm-Key", "Farm Key").SetValue(new KeyBind(86, KeyBindType.Press))); // V
+        Config.SubMenu("Farm").AddItem(new MenuItem("Use-Q-Farm", "Use Q").SetValue(true));
         Config.SubMenu("Farm").AddItem(new MenuItem("Use-W-Farm", "Use W").SetValue(true));
         Config.SubMenu("Farm").AddItem(new MenuItem("Farm-Mana", "Mana Limit").SetValue(new Slider(20)));
 
@@ -232,7 +233,7 @@ public class yetAnotherDiana
 			"Off in Combo",
 			"On",
 			"Off"
-		})));
+		},1)));
         Config.SubMenu("Interrupt").AddItem(new MenuItem("Interrupt-Use-E", "Use E").SetValue(true));
         Config.SubMenu("Interrupt").AddItem(new MenuItem("Interrupt-Use-R", "Use R").SetValue(new StringList(new[] {
 			"Danger",
@@ -388,7 +389,7 @@ public class yetAnotherDiana
             JungleFarm();
 
         //Farm
-        if (Config.Item("Farm-Key").GetValue<KeyBind>().Active && (Player.Mana / Player.MaxMana * 100) >= Config.Item("Farm-Mana").GetValue<Slider>().Value && _q.IsReady())
+        if (Config.Item("Farm-Key").GetValue<KeyBind>().Active && Config.Item("Use-Q-Farm").GetValue<bool>() && (Player.Mana / Player.MaxMana * 100) >= Config.Item("Farm-Mana").GetValue<Slider>().Value && _q.IsReady())
         {
             Console.WriteLine("Farm Key");
             var tuple = getBestQPosFarm();
@@ -543,7 +544,7 @@ public class yetAnotherDiana
                 _q.Cast(target, Config.Item("Packet Casting").GetValue<bool>());
             }
         }
-        if (Config.Item("Combo-Use-E").GetValue<bool>() && _e.IsReady() && Player.Distance(target) < _e.Range - 15 && Player.Distance(target) > 145)
+        if (Config.Item("Combo-Use-E").GetValue<bool>() && _e.IsReady() && Player.Distance(target) < _e.Range - 15 && Player.Distance(target) > 165 && target.IsFacing(Player))
             _e.Cast();
         if (Config.Item("Combo-Use-W").GetValue<bool>() && _w.IsReady() && Player.Distance(target) < _w.Range)
             _w.Cast();
