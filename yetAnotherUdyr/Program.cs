@@ -1,4 +1,4 @@
-﻿
+
 using Microsoft.VisualBasic;
 using System;
 using System.Collections;
@@ -15,7 +15,7 @@ public class yetAnotherUdyr
 {
     //Script Information
 
-    static string versionNumber = "1.2.0";
+    static string versionNumber = "1.2.1";
     //Ease of use
 
     static Obj_AI_Hero player = ObjectManager.Player;
@@ -205,7 +205,10 @@ public class yetAnotherUdyr
             
             //If stun lock is on, the target doesn't have a stun buff, and the spell is ready, then cast bear stun
             if (Config.Item("Stun Lock").GetValue<bool>() && E.IsReady() && !target.HasBuff("udyrbearstuncheck", true))
+            {
                 E.Cast();
+                return;                
+            }
 
             if (Config.Item("Style").GetValue<StringList>().SelectedIndex == 0)
             {
