@@ -517,12 +517,12 @@ public class yetAnotherDiana
                     CheckFlag = true;
                 }
             }
-            else if (Player.Spellbook.GetSpell(SpellSlot.Q).CooldownExpires - Game.Time >= 0.6)
+            else if (_r.IsReady() && Player.Spellbook.GetSpell(SpellSlot.Q).CooldownExpires - Game.Time >= 0.6)
             {
                 Console.WriteLine("Second R Cast");
                 _r.Cast(target, Config.Item("Packet Casting").GetValue<bool>());
             }
-            if (CheckFlag && target.HasBuff("dianamoonlight", true))
+            if (CheckFlag && _r.IsReady() && target.HasBuff("dianamoonlight", true))
             {
                 _r.Cast(target, Config.Item("Packet Casting").GetValue<bool>());
                 CheckFlag = false;
