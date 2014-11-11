@@ -500,7 +500,7 @@ public class yetAnotherDiana
                     Console.WriteLine("First R Cast");
                     _r.Cast(target, Config.Item("Packet Casting").GetValue<bool>());
 
-					for (var i = 0; i < 80; i++)
+					for (var i = 0; i < 150; i++)
                     {
 						if(_q.IsReady())
                         	_q.Cast(target, Config.Item("Packet Casting").GetValue<bool>());
