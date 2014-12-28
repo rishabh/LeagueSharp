@@ -75,8 +75,8 @@ public class yetAnotherUdyr
         Orbwalker = new Orbwalking.Orbwalker(Config.SubMenu("Orbwalking"));
 
         //Target Selector
-        dynamic targetSelector = new Menu("Target Selector", "Target Selector");
-        SimpleTs.AddToMenu(targetSelector);
+        var targetSelector = new Menu("Target Selector", "Target Selector");
+        TargetSelector.AddToMenu(targetSelector);
         Config.AddSubMenu(targetSelector);
 
         //Main
@@ -194,7 +194,7 @@ public class yetAnotherUdyr
     public static void ComboIt()
     {
         //Create target
-        var target = SimpleTs.GetTarget(600f, SimpleTs.DamageType.Magical);
+        var target = TargetSelector.GetTarget(600f, TargetSelector.DamageType.Magical);
 
         if (target == null)
             return;
