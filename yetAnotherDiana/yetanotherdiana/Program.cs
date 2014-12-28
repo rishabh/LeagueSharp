@@ -110,8 +110,9 @@ public class yetAnotherDiana
         _e = new Spell(SpellSlot.E, 450);
         _r = new Spell(SpellSlot.R, 825);
 
-        Ignite = Player.GetSpellSlot("SummonerDot");
-        Smite = Player.GetSpellSlot("SummonerSmite");
+		Ignite = Player.GetSpellSlot("SummonerDot");
+	    Smite = Player.GetSpellSlot("SummonerSmit");
+
         //Main Menu
         Config = new Menu("yA-Diana", "yA-Diana", true);
 
@@ -121,7 +122,7 @@ public class yetAnotherDiana
 
         //Target Selector
         var targetSelector = new Menu("Target Selector", "Target Selector");
-        SimpleTs.AddToMenu(targetSelector);
+        TargetSelector.AddToMenu(targetSelector);
         Config.AddSubMenu(targetSelector);
 
         //Combo
@@ -357,7 +358,7 @@ public class yetAnotherDiana
             Killsteal();
 
         // Define Target
-        var target = SimpleTs.GetTarget(_r.Range * 2 + 10, SimpleTs.DamageType.Magical);
+        var target = TargetSelector.GetTarget(_r.Range * 2 + 10, TargetSelector.DamageType.Magical);
         if (target != null)
         {
             //Double Check
@@ -666,8 +667,8 @@ public class yetAnotherDiana
                 }
             }
 
-            if (Config.Item("Killsteal-Use-Ignite").GetValue<bool>() && Ignite != SpellSlot.Unknown && Player.SummonerSpellbook.CanUseSpell(Ignite) == SpellState.Ready && Player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite) - 10 >= target.Health)
-                Player.SummonerSpellbook.CastSpell(Ignite, target);
+            if (Config.Item("Killsteal-Use-Ignite").GetValue<bool>() && Ignite != SpellSlot.Unknown && Player.Spellbook.CanUseSpell(Ignite) == SpellState.Ready && Player.GetSummonerSpellDamage(target, Damage.SummonerSpell.Ignite) - 10 >= target.Health)
+                Player.Spellbook.CastSpell(Ignite, target);
 
         }
     }
