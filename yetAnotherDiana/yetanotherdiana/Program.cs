@@ -111,7 +111,7 @@ public class yetAnotherDiana
         _r = new Spell(SpellSlot.R, 825);
 
 		Ignite = Player.GetSpellSlot("SummonerDot");
-	    Smite = Player.GetSpellSlot("SummonerSmit");
+	    Smite = Player.GetSpellSlot("SummonerSmite");
 
         //Main Menu
         Config = new Menu("yA-Diana", "yA-Diana", true);
