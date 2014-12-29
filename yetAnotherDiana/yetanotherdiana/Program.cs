@@ -10,7 +10,7 @@ public class yetAnotherDiana
 
     //Script Information
 
-    private static string versionNumber = "1.0.0.1";
+    private static string versionNumber = "1.0.2.0";
 
     //Ease of use
     private static Obj_AI_Hero Player = ObjectManager.Player;
@@ -111,7 +111,7 @@ public class yetAnotherDiana
         _r = new Spell(SpellSlot.R, 825);
 
 		Ignite = Player.GetSpellSlot("SummonerDot");
-	    Smite = Player.GetSpellSlot("SummonerSmit");
+	    Smite = Player.GetSpellSlot("SummonerSmite");
 
         //Main Menu
         Config = new Menu("yA-Diana", "yA-Diana", true);
@@ -129,8 +129,9 @@ public class yetAnotherDiana
         Config.AddSubMenu(new Menu("Combo", "Combo"));
         Config.SubMenu("Combo").AddItem(new MenuItem("Combo-Key", "Combo Key").SetValue(new KeyBind(32, KeyBindType.Press))); //Spacebar
         Config.SubMenu("Combo").AddItem(new MenuItem("Combo-Use-W", "Use W").SetValue(true));
-        Config.SubMenu("Combo").AddItem(new MenuItem("Combo-Use-E", "Use E").SetValue(true));
-        Config.SubMenu("Combo").AddItem(new MenuItem("Combo-Jump-To-Target", "Jump To Target").SetValue(new StringList(new[] {
+		Config.SubMenu("Combo").AddItem(new MenuItem("Combo-Use-E", "Use E").SetValue(true));
+		Config.SubMenu("Combo").AddItem(new MenuItem("Combo-Double-R", "Use R Twice").SetValue(true));
+		Config.SubMenu("Combo").AddItem(new MenuItem("Combo-Jump-To-Target", "Jump To Target").SetValue(new StringList(new[] {
 			"Killable",
 			"On",
 			"Off"
@@ -152,10 +153,12 @@ public class yetAnotherDiana
 
         //Farm
         Config.AddSubMenu(new Menu("Farm", "Farm"));
-        Config.SubMenu("Farm").AddItem(new MenuItem("Farm-Key", "Farm Key").SetValue(new KeyBind(86, KeyBindType.Press))); // V
-        Config.SubMenu("Farm").AddItem(new MenuItem("Use-Q-Farm", "Use Q").SetValue(true));
-        Config.SubMenu("Farm").AddItem(new MenuItem("Use-W-Farm", "Use W").SetValue(true));
-        Config.SubMenu("Farm").AddItem(new MenuItem("Farm-Mana", "Mana Limit").SetValue(new Slider(20)));
+        Config.SubMenu("Farm").AddItem(new MenuItem("Farm-Key", "Farm Key").SetValue(new KeyBind(86, KeyBindType.Press))); //V
+		Config.SubMenu("Farm").AddItem(new MenuItem("Use-Q-Farm", "Use Q").SetValue(true));
+		Config.SubMenu("Farm").AddItem(new MenuItem("Minimum-Q-Farm", "Q - Minimum Hit").SetValue(new Slider(3,2,6)));
+		Config.SubMenu("Farm").AddItem(new MenuItem("Use-W-Farm", "Use W").SetValue(true));
+		Config.SubMenu("Farm").AddItem(new MenuItem("Minimum-W-Farm", "W - Minimum Hit").SetValue(new Slider(3,2,6)));
+		Config.SubMenu("Farm").AddItem(new MenuItem("Farm-Mana", "Mana Limit").SetValue(new Slider(20)));
 
         //Jungle Farm
         Config.AddSubMenu(new Menu("Jungle Farm", "Jungle Farm"));
@@ -240,7 +243,7 @@ public class yetAnotherDiana
 			"Danger",
 			"On",
 			"Off"
-		})));
+		},2)));
 
         // Map Specific
         if (Utility.Map.GetMap()._MapType == Utility.Map.MapType.SummonersRift)
@@ -253,7 +256,9 @@ public class yetAnotherDiana
             Config.SubMenu("Jungle Farm").SubMenu("Jungle Jump").AddItem(new MenuItem("Jungle-MoveTo", "Move To Mouse").SetValue(true));
         }
         else
-            Dfg = new Items.Item(3188, 750);
+		{ 
+           Dfg = new Items.Item(3188, 750);
+		}
 
         //Gap Closer
         Config.AddSubMenu(new Menu("Gap Closer", "Gap Closer"));
@@ -281,13 +286,14 @@ public class yetAnotherDiana
 
     #region "Regular Events"
 
-    //Interrupt + GapCloser
+    //GapCloser
     static void AntiGapcloserOnOnEnemyGapcloser(ActiveGapcloser gapcloser)
     {
 		if (Config.Item("GapCloser-Use-W").GetValue<bool>() && _w.IsReady())
             _w.Cast();
     }
 
+	//Interrupt
     static void InterrupterOnPossibleToInterrupt(Obj_AI_Base unit, InterruptableSpell spell)
     {
         if (Config.Item("Interrupt-Enabled").GetValue<StringList>().SelectedIndex == 2 || Player.HasBuff("Recall"))
@@ -329,7 +335,7 @@ public class yetAnotherDiana
         {
 
             var minions = MinionManager.GetMinions(Player.ServerPosition, _w.Range + 100);
-            if (minions.Count < 3)
+            if (minions.Count < Config.Item("Minimum-W-Farm").GetValue<Slider>().Value)
                 return;
 
             Farm();
@@ -341,8 +347,11 @@ public class yetAnotherDiana
     //Auto level up skill
     static void Unit_OnLevelUp(Obj_AI_Base sender, CustomEvents.Unit.OnLevelUpEventArgs args)
     {
+		Console.WriteLine("Someone Leveled");
         if (!sender.IsMe || !Config.Item("Auto Level").GetValue<bool>())
             return;
+
+		Console.WriteLine("Leveled");
         Player.Spellbook.LevelUpSpell((SpellSlot)levelUpList[args.NewLevel - 1]);
     }
 
@@ -351,38 +360,44 @@ public class yetAnotherDiana
     //GameOnGameUpdate
     static void Game_OnGameUpdate(EventArgs args)
     {
-        if (Player.IsDead)
+
+		if (Player.IsDead)
             return;
 
-        if (Config.Item("Killsteal-Enabled").GetValue<bool>() && !(Config.Item("Combo-Key").GetValue<KeyBind>().Active && Config.Item("Interrupt-Enabled").GetValue<StringList>().SelectedIndex == 0))
+        if (Config.Item("Killsteal-Enabled").GetValue<bool>() && !Config.Item("Combo-Key").GetValue<KeyBind>().Active)
             Killsteal();
+
 
         // Define Target
         var target = TargetSelector.GetTarget(_r.Range * 2 + 10, TargetSelector.DamageType.Magical);
-        if (target != null)
-        {
-            //Double Check
-			if (InMisayaCombo && Player.Distance(target) <= 500 && _q.IsReady())
-            {
-                _q.Cast(target, Config.Item("Packet Casting").GetValue<bool>());
-            }
+		
+	    if (target.IsValidTarget())
+	    {
+		    //Double Check
+		    if (InMisayaCombo && Player.Distance(target) <= 500 && _q.IsReady())
+		    {
+			    _q.Cast(target, Config.Item("Packet Casting").GetValue<bool>());
+		    }
 
-            //If combo key is pressed
-            if (Config.Item("Combo-Key").GetValue<KeyBind>().Active)
-            {
-                ComboIt(target);
-            }
-            else if (Config.Item("Harass-Key").GetValue<KeyBind>().Active)
-            {
-				if (Config.Item("Harass-MoveTo").GetValue<bool>())
-					MoveTo(Game.CursorPos);
-                Harass(target);
-            }
-        }
+		    //If combo key is pressed
+		    if (Config.Item("Combo-Key").GetValue<KeyBind>().Active)
+		    {
+			    ComboIt(target);
+		    }
+		    else if (Config.Item("Harass-Key").GetValue<KeyBind>().Active)
+		    {
+			    Console.WriteLine(Player.Position.ToString());
+			    if (Config.Item("Harass-MoveTo").GetValue<bool>())
+				    MoveTo(Game.CursorPos);
+			    Harass(target);
+		    }
+	    }
+
+
         //Defensive Items
-        if (Config.Item("LoTIS").GetValue<bool>() && LoTIS.IsReady() && ((Player.Health / Player.MaxHealth) * 100) <= Config.Item("LoTIS-HP-%").GetValue<Slider>().Value)
+		if (Config.Item("LoTIS").GetValue<bool>() && Items.HasItem(LoTIS.Id) && LoTIS.IsReady() && ((Player.Health / Player.MaxHealth) * 100) <= Config.Item("LoTIS-HP-%").GetValue<Slider>().Value)
             Items.UseItem(LoTIS.Id, Player);
-        if (Config.Item("Zhonya").GetValue<bool>() && Zhonya.IsReady() && (Player.Health / Player.MaxHealth) * 100 <= Config.Item("Zhonya-HP-%").GetValue<Slider>().Value)
+		if (Config.Item("Zhonya").GetValue<bool>() && Items.HasItem(Zhonya.Id) && Zhonya.IsReady() && (Player.Health / Player.MaxHealth) * 100 <= Config.Item("Zhonya-HP-%").GetValue<Slider>().Value)
             Items.UseItem(Zhonya.Id, Player);
 
         //Jungle-Farm
@@ -392,20 +407,22 @@ public class yetAnotherDiana
         //Farm
         if (Config.Item("Farm-Key").GetValue<KeyBind>().Active && Config.Item("Use-Q-Farm").GetValue<bool>() && (Player.Mana / Player.MaxMana * 100) >= Config.Item("Farm-Mana").GetValue<Slider>().Value && _q.IsReady())
         {
-            Console.WriteLine("Farm Key");
             var tuple = getBestQPosFarm();
-            if (tuple.Item1 > 2)
+            if (tuple.Item1 > Config.Item("Minimum-Q-Farm").GetValue<Slider>().Value)
                 _q.Cast(tuple.Item2, Config.Item("Packet Casting").GetValue<bool>());
         }
 
+
         //JungleJump
-        if (Config.Item("Jungle-Jump-Key").GetValue<KeyBind>().Active)
+        if (Utility.Map.GetMap()._MapType == Utility.Map.MapType.SummonersRift && Config.Item("Jungle-Jump-Key").GetValue<KeyBind>().Active)
         {
-            if (Config.Item("Jungle-MoveTo").GetValue<bool>())
+			
+			if (Config.Item("Jungle-MoveTo").GetValue<bool>())
                 MoveTo(Game.CursorPos);
 
             JungleJump();
         }
+
         //If drawing is on
         if (Config.Item("Draw").GetValue<bool>())
             UpdateIsKillable();
@@ -424,22 +441,23 @@ public class yetAnotherDiana
         if ((Config.Item("Combo-Jump-To-Target").GetValue<StringList>().SelectedIndex == 0 && ReturnComboDamage(target, 0) > target.Health) || //If Killable & target is killable
             (Config.Item("Combo-Jump-To-Target").GetValue<StringList>().SelectedIndex == 1)) //If On
             JumpToTarget(target);
-
+		
         // Cast the Main Combo
         MainCombo(target);
 
+		
         //Do Attack Items
-        if (Config.Item("DFG").GetValue<bool>() & Dfg.IsReady())
-            Dfg.Cast(target);
-        if (Config.Item("BoTRK").GetValue<bool>() && BoTRK.IsReady())
-            BoTRK.Cast(target);
-        if (Config.Item("RavHydra").GetValue<bool>() && RavHydra.IsReady())
+        if (Config.Item("DFG").GetValue<bool>() && Items.HasItem(Dfg.Id) && Dfg.IsReady())
+            Items.UseItem(Dfg.Id, target);
+		if (Config.Item("BotRK").GetValue<bool>() && Items.HasItem(BoTRK.Id) && BoTRK.IsReady())
+            Items.UseItem(BoTRK.Id, target);
+		if (Config.Item("RavHydra").GetValue<bool>() && Items.HasItem(RavHydra.Id) && RavHydra.IsReady())
 			Items.UseItem(RavHydra.Id, Player);
-        if (Config.Item("BilgeCut").GetValue<bool>() && BilgeCut.IsReady())
-            BilgeCut.Cast(target);
-        if (Config.Item("Tiamat").GetValue<bool>() && Tiamat.IsReady())
+		if (Config.Item("BilgeCut").GetValue<bool>() && Items.HasItem(BilgeCut.Id) && BilgeCut.IsReady())
+            Items.UseItem(BilgeCut.Id,target);
+		if (Config.Item("Tiamat").GetValue<bool>() && Items.HasItem(Tiamat.Id) && Tiamat.IsReady())
 			Items.UseItem(Tiamat.Id, Player);
-        if (Config.Item("RanOmen").GetValue<bool>() && RanOmen.IsReady() && Player.Distance(target) <= 490)
+		if (Config.Item("RanOmen").GetValue<bool>() && Items.HasItem(RanOmen.Id) && RanOmen.IsReady() && Player.Distance(target) <= 490)
             Items.UseItem(RanOmen.Id, Player);
 
     }
@@ -463,7 +481,6 @@ public class yetAnotherDiana
             }
         }
 
-        //Do Combo
         // Jump To Target if in range
 		if (_q.IsReady() && _r.IsReady() && (Player.Distance(target) <= _r.Range * 2 - 20) && (Player.Distance(target) > _r.Range + 10))
         {
@@ -485,6 +502,7 @@ public class yetAnotherDiana
     {
         if (InMisayaCombo)
             Console.WriteLine(Player.Distance(target));
+
         if (Environment.TickCount > MisayaTick + 1000)
         {
             InMisayaCombo = false;
@@ -515,14 +533,16 @@ public class yetAnotherDiana
                 else
                 {
                     _q.Cast(target.Position, Config.Item("Packet Casting").GetValue<bool>());
+					MisayaTick = Environment.TickCount;
                     CheckFlag = true;
                 }
             }
-            else if (_r.IsReady() && Player.Spellbook.GetSpell(SpellSlot.Q).CooldownExpires - Game.Time >= 0.6)
+            else if (_r.IsReady() && Player.Spellbook.GetSpell(SpellSlot.Q).CooldownExpires - Game.Time >= 0.6 && Config.Item("Combo-Double-R").GetValue<bool>())
             {
                 Console.WriteLine("Second R Cast");
                 _r.Cast(target, Config.Item("Packet Casting").GetValue<bool>());
             }
+
             if (CheckFlag && _r.IsReady() && target.HasBuff("dianamoonlight", true))
             {
                 _r.Cast(target, Config.Item("Packet Casting").GetValue<bool>());
@@ -565,7 +585,6 @@ public class yetAnotherDiana
         var laneMinions = MinionManager.GetMinions(ObjectManager.Player.ServerPosition, _q.Range);
 
         laneMinions.Reverse();
-        Console.WriteLine("-------------");
         foreach (var minion in laneMinions)
         {
             Console.WriteLine(Player.Distance(minion));
@@ -810,11 +829,12 @@ public class yetAnotherDiana
         if (Config.Item("Draw R").GetValue<Circle>().Active)
             Utility.DrawCircle(Player.Position, Player.Spellbook.GetSpell(SpellSlot.R).SData.CastRange[0], Config.Item("Draw R").GetValue<Circle>().Color);
 
-        if (Config.Item("Jungle-Draw-Spots").GetValue<Circle>().Active)
+        if (Utility.Map.GetMap()._MapType == Utility.Map.MapType.SummonersRift && Config.Item("Jungle-Draw-Spots").GetValue<Circle>().Active)
             foreach (var camp in jungleLocations.Where(camp => _r.IsReady() && _q.IsReady() && Player.Distance(camp.Value) <= 1500))
                 Utility.DrawCircle(camp.Value, camp.Key, Config.Item("Jungle-Draw-Spots").GetValue<Circle>().Color, 2, 22);
 
-        foreach (var enemyVisible in ObjectManager.Get<Obj_AI_Hero>().Where(enemyVisible => enemyVisible.IsValidTarget() && Config.Item(enemyVisible.ChampionName + "E").GetValue<bool>()))
+
+		foreach (var enemyVisible in ObjectManager.Get<Obj_AI_Hero>().Where(enemyVisible => enemyVisible.IsValidTarget() && Config.Item(enemyVisible.ChampionName + "E").GetValue<bool>()))
         {
             //Regular drawing
 			if (Config.Item(enemyVisible.ChampionName + "KC").GetValue<bool>())
@@ -823,7 +843,6 @@ public class yetAnotherDiana
                 Drawing.DrawText(Drawing.WorldToScreen(enemyVisible.Position)[0] - 40, Drawing.WorldToScreen(enemyVisible.Position)[1] - 100, System.Drawing.Color.Red, Convert.ToInt32(enemyVisible.Health / enemyVisible.MaxHealth * 100) + "%");
             if (Config.Item(enemyVisible.ChampionName + "MP").GetValue<bool>())
                 Drawing.DrawText(Drawing.WorldToScreen(enemyVisible.Position)[0] + 10, Drawing.WorldToScreen(enemyVisible.Position)[1] - 100, System.Drawing.Color.Violet, Convert.ToInt32(enemyVisible.Mana / enemyVisible.MaxMana * 100) + "%");
-            Console.WriteLine(enemyVisible.ChampionName);
             //If color is off, then go to the next enemy that is visible
             if (!Config.Item(enemyVisible.ChampionName + "RC").GetValue<Circle>().Active)
                 continue;
