@@ -18,18 +18,19 @@ public class yetAnotherUdyr
     static string versionNumber = "1.2.1";
     //Ease of use
 
-    static Obj_AI_Hero player = ObjectManager.Player;
+    static Obj_AI_Hero Player = ObjectManager.Player;
     static Menu Config;
 
     static Orbwalking.Orbwalker Orbwalker;
     static List<int> levelUpListPhoenix = new List<int> { 3, 2, 1, 0, 3, 3, 1, 3, 1, 3, 1, 1, 2, 2, 2, 2, 0, 0 };
     static List<int> levelUpListTiger = new List<int> { 0, 2, 1, 0, 0, 2, 0, 1, 0, 2, 2, 2, 1, 1, 1, 3, 3, 3 };
+
     //Spells
     static Spell Q;
     static Spell W;
     static Spell E;
-
     static Spell R;
+
     //Items
     //'Offensive - minus 25 range
     static Items.Item BilgeCut = new Items.Item(3144, 475);
@@ -37,11 +38,11 @@ public class yetAnotherUdyr
     static Items.Item RavHydra = new Items.Item(3074, 375);
     static Items.Item Tiamat = new Items.Item(3077, 375);
     static Items.Item RanOmen = new Items.Item(3143, 490);
+
     //'Defensive - minus 10 range
-
     static Items.Item LoTIS = new Items.Item(3190, 590);
-    //Drawing
-
+    
+	//Drawing
     static Dictionary<int, System.Drawing.Color> enemyColor = new Dictionary<int, System.Drawing.Color>();
 
     public static void Main(string[] arg)
@@ -149,7 +150,7 @@ public class yetAnotherUdyr
     public static void Orbwalking_BeforeAttack(Orbwalking.BeforeAttackEventArgs args)
     {
         //if farm key is pressed
-        if (Config.Item("Farm Key").GetValue<KeyBind>().Active && Orbwalking.CanMove(50) && ((player.Mana / player.MaxMana) * 100) >= Config.Item("Farm-Mana").GetValue<Slider>().Value)
+        if (Config.Item("Farm Key").GetValue<KeyBind>().Active && Orbwalking.CanMove(50) && ((Player.Mana / Player.MaxMana) * 100) >= Config.Item("Farm-Mana").GetValue<Slider>().Value)
             Farm();
     }
 
@@ -159,14 +160,14 @@ public class yetAnotherUdyr
         if (!sender.IsMe || !Config.Item("Auto Level").GetValue<bool>()) return;
 
         if (Config.Item("Style").GetValue<StringList>().SelectedIndex == 0)
-            player.Spellbook.LevelUpSpell((SpellSlot)levelUpListPhoenix[args.NewLevel - 1]);
+            Player.Spellbook.LevelUpSpell((SpellSlot)levelUpListPhoenix[args.NewLevel - 1]);
         else
-            player.Spellbook.LevelUpSpell((SpellSlot)levelUpListTiger[args.NewLevel - 1]);
+            Player.Spellbook.LevelUpSpell((SpellSlot)levelUpListTiger[args.NewLevel - 1]);
     }
 
     public static void Game_OnGameUpdate(EventArgs args)
     {
-        if (player.IsDead)
+        if (Player.IsDead)
             return;
         //If combo key is pressed
         if (Config.Item("Combo Key").GetValue<KeyBind>().Active)
@@ -175,11 +176,11 @@ public class yetAnotherUdyr
         }
 
         //Defensive Items (currently only LoTIS)
-        if (Config.Item("LoTIS").GetValue<bool>() && LoTIS.IsReady() && ((player.Health / player.MaxHealth) * 100) <= Config.Item("LoTIS-HP-%").GetValue<Slider>().Value)
-            LoTIS.Cast(player);
+        if (Config.Item("LoTIS").GetValue<bool>() && Items.HasItem(LoTIS.Id) && LoTIS.IsReady() && ((Player.Health / Player.MaxHealth) * 100) <= Config.Item("LoTIS-HP-%").GetValue<Slider>().Value)
+            LoTIS.Cast(Player);
 
         //If jungle key is pressed
-        if (Config.Item("Jungle Farm Key").GetValue<KeyBind>().Active && ((player.Mana / player.MaxMana) * 100) >= Config.Item("Jungle-Mana").GetValue<Slider>().Value)
+        if (Config.Item("Jungle Farm Key").GetValue<KeyBind>().Active && ((Player.Mana / Player.MaxMana) * 100) >= Config.Item("Jungle-Mana").GetValue<Slider>().Value)
             JungleFarm();
 
         //If drawing is on
@@ -200,7 +201,7 @@ public class yetAnotherUdyr
             return;
 
         //Skill order sequence
-        if (Geometry.Distance(target) < 300)
+        if (Player.Distance(target) < 300)
         {
             
             //If stun lock is on, the target doesn't have a stun buff, and the spell is ready, then cast bear stun
@@ -235,21 +236,22 @@ public class yetAnotherUdyr
         }
 
         //Do Attack Items
-        if (Config.Item("BoTRK").GetValue<bool>() && BoTRK.IsReady())
+        if (Config.Item("BoTRK").GetValue<bool>() && Items.HasItem(BoTRK.Id) && BoTRK.IsReady())
             BoTRK.Cast(target);
-        if (Config.Item("RavHydra").GetValue<bool>() && RavHydra.IsReady())
+		if (Config.Item("RavHydra").GetValue<bool>() && Items.HasItem(RavHydra.Id) && RavHydra.IsReady())
             RavHydra.Cast(target);
-        if (Config.Item("BilgeCut").GetValue<bool>() && BilgeCut.IsReady())
+		if (Config.Item("BilgeCut").GetValue<bool>() && Items.HasItem(BilgeCut.Id) && BilgeCut.IsReady())
             BilgeCut.Cast(target);
-        if (Config.Item("Tiamat").GetValue<bool>() && Tiamat.IsReady())
+		if (Config.Item("Tiamat").GetValue<bool>() && Items.HasItem(Tiamat.Id) && Tiamat.IsReady())
             Tiamat.Cast(target);
-        if (Config.Item("RanOmen").GetValue<bool>() && RanOmen.IsReady() && Geometry.Distance(target) <= 490)
+		if (Config.Item("RanOmen").GetValue<bool>() && Items.HasItem(RanOmen.Id) && RanOmen.IsReady() && Player.Distance(target) <= 490)
             RanOmen.Cast(target);
     }
 
     public static void Farm()
     {
-        dynamic minions = MinionManager.GetMinions(player.ServerPosition, 500f);
+        var minions = MinionManager.GetMinions(Player.ServerPosition, 500f);
+
         if (minions.Count < 3)
             return;
 
@@ -261,7 +263,7 @@ public class yetAnotherUdyr
 
     public static void JungleFarm()
     {
-        dynamic jungleMobs = MinionManager.GetMinions(player.ServerPosition, 700, MinionTypes.All, MinionTeam.Neutral, MinionOrderTypes.MaxHealth);
+        var jungleMobs = MinionManager.GetMinions(Player.ServerPosition, 700, MinionTypes.All, MinionTeam.Neutral, MinionOrderTypes.MaxHealth);
         if (jungleMobs.Count == 0)
             return;
 
@@ -279,23 +281,23 @@ public class yetAnotherUdyr
         foreach (var enemy in ObjectManager.Get<Obj_AI_Hero>())
         {
             //Regular
-            var totalDamage = Damage.GetAutoAttackDamage(player, enemy);
+            var totalDamage = Player.GetAutoAttackDamage(enemy);
 
             //Damage Spells
             if (Q.IsReady())
-                totalDamage += Damage.GetSpellDamage(player, enemy, SpellSlot.Q);
+                totalDamage += Player.GetSpellDamage(enemy, SpellSlot.Q);
             if (R.IsReady())
-                totalDamage += Damage.GetSpellDamage(player, enemy, SpellSlot.R);
+                totalDamage += Player.GetSpellDamage(enemy, SpellSlot.R);
 
             //Items
             if (BilgeCut.IsReady() && Config.Item("BilgeCut").GetValue<bool>())
-                totalDamage += Damage.GetItemDamage(player, enemy, Damage.DamageItems.Bilgewater);
+                totalDamage += Player.GetItemDamage(enemy, Damage.DamageItems.Bilgewater);
             if (BoTRK.IsReady() && Config.Item("BoTRK").GetValue<bool>())
-                totalDamage += Damage.GetItemDamage(player, enemy, Damage.DamageItems.Botrk);
+                totalDamage += Player.GetItemDamage(enemy, Damage.DamageItems.Botrk);
             if (RavHydra.IsReady() && Config.Item("RavHydra").GetValue<bool>())
-                totalDamage += Damage.GetItemDamage(player, enemy, Damage.DamageItems.Hydra);
+                totalDamage += Player.GetItemDamage(enemy, Damage.DamageItems.Hydra);
             if (Tiamat.IsReady() && Config.Item("Tiamat").GetValue<bool>())
-                totalDamage += Damage.GetItemDamage(player, enemy, Damage.DamageItems.Tiamat);
+                totalDamage += Player.GetItemDamage(enemy, Damage.DamageItems.Tiamat);
 
 
             var newEnemyHealth = ((enemy.Health - totalDamage) / enemy.MaxHealth);
