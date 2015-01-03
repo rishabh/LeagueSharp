@@ -58,7 +58,7 @@ internal class yetAnotherEzreal
 
 	private static string[] WPriority =
     {
-		"Akali", "Diana", "Fiddlesticks", "Fiora", "Fizz", "Heimerdinger", "Jayce",
+	"Akali", "Diana", "Fiddlesticks", "Fiora", "Fizz", "Heimerdinger", "Jayce",
         "Kayle", "Kha'Zix", "Mordekaiser", "Nidalee", "Riven", "Shaco", "Yasuo", "Ashe", "Caitlyn", "Corki", "Draven",
         "Graves", "Jinx", "Karthus", "Katarina", "Kennen", "KogMaw", "Lucian",
         "MasterYi", "MissFortune", "Quinn", "Sivir", "Talon", "Teemo",
@@ -212,8 +212,8 @@ internal class yetAnotherEzreal
 	{
 		if (!CheckFlag || sender == null || !sender.IsValid|| !sender.IsMe || args.SData.Name != "EzrealEssenceFluxMissile" || !_e.IsReady()) return;
 
-	    _e.Cast(Player.Position.Extend(args.End, _e.Range));
-	    CheckFlag = false;
+		_e.Cast(Player.Position.Extend(args.End, _e.Range));
+		CheckFlag = false;
 	}
 	static bool ShouldWait()
 	{
@@ -222,7 +222,7 @@ internal class yetAnotherEzreal
 			.Any(
 				minion =>
 					minion.IsValidTarget(_q.Range) && minion.Team != GameObjectTeam.Neutral &&
-					(Config.Item("Farm-Use-Q-Select").GetValue<StringList>().SelectedIndex == 1 ||
+					(Config.Item("Farm-Use-Q-Select").GetValue<StringList>().SelectedIndex == 2 ||
 					(minion.SkinName == "SRU_ChaosMinionSiege" | minion.SkinName == "SRU_OrderMinionSiege" |
 					minion.SkinName == "SRU_ChaosMinionSuper" | minion.SkinName == "SRU_OrderMinionSuper")) &&
 					HealthPrediction.LaneClearHealthPrediction(
@@ -311,7 +311,6 @@ internal class yetAnotherEzreal
 						 (target.IsMelee() && (landingPosition.Distance(target.Position) + Player.BoundingRadius + 50 > target.AttackRange + target.BoundingRadius)))) //If target is melee, make sure you don't land in its AA range
 					{
 						CheckFlag = true;
-
 					}
 				}
 			}
@@ -480,7 +479,7 @@ internal class yetAnotherEzreal
 	}
 
 
-    //Credits to Honda (I think)
+    	//Credits to Honda (I think)
 	private static Vector3 GetELandingPosition()
 	{
 		Vector3 castPoint = Player.Distance(Game.CursorPos) <= _e.Range
