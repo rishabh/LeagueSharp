@@ -17,7 +17,7 @@ internal class yetAnotherEzreal
 
 
 	//Script Information
-	private const string VersionNumber = "0.9.9.9";
+	private const string VersionNumber = "1.0.0.0";
 
 	//Ease of use
 	private static Obj_AI_Hero Player = ObjectManager.Player;
@@ -72,8 +72,7 @@ internal class yetAnotherEzreal
 
 	private static void Game_OnGameLoad(EventArgs args)
 	{
-		Game.PrintChat("yetAnotherEzreal by FlapperDoodle" + //and Trees if he makes it better :p
-		               ", version: " + VersionNumber);
+		Game.PrintChat("yetAnotherEzreal by FlapperDoodle, version: " + VersionNumber);
 		if (ObjectManager.Player.ChampionName != "Ezreal")
 		{
 			Game.PrintChat("Please use Ezreal~");
@@ -125,8 +124,8 @@ internal class yetAnotherEzreal
 		Config.SubMenu("Killsteal").AddItem(new MenuItem("Killsteal-Enabled", "Enabled").SetValue(true));
 		Config.SubMenu("Killsteal").AddItem(new MenuItem("Killsteal-Use-Q", "Use Q").SetValue(true));
 		Config.SubMenu("Killsteal").AddItem(new MenuItem("Killsteal-Use-W", "Use W").SetValue(true));
-		Config.SubMenu("Killsteal").AddItem(new MenuItem("Killsteal-Use-BotRK", "Use Bot Ruined King").SetValue(false));
-		Config.SubMenu("Killsteal").AddItem(new MenuItem("Killsteal-Use-BilgeCut", "Use Bilgewater Cutlass").SetValue(false));
+		Config.SubMenu("Killsteal").AddItem(new MenuItem("Killsteal-Use-BotRK", "Use Bot Ruined King").SetValue(true));
+		Config.SubMenu("Killsteal").AddItem(new MenuItem("Killsteal-Use-BilgeCut", "Use Bilgewater Cutlass").SetValue(true));
 		Config.SubMenu("Killsteal").AddItem(new MenuItem("Killsteal-Use-Ignite", "Use Ignite").SetValue(true));
 
 		//Harass
@@ -167,7 +166,6 @@ internal class yetAnotherEzreal
 		Config.SubMenu("Items").SubMenu("Defense").AddSubMenu(new Menu("Zhonya's Hourglass", "Zhonya-Menu"));
 		Config.SubMenu("Items").SubMenu("Defense").SubMenu("Zhonya-Menu").AddItem(new MenuItem("Zhonya", "Enabled").SetValue(true));
 		Config.SubMenu("Items").SubMenu("Defense").SubMenu("Zhonya-Menu").AddItem(new MenuItem("Zhonya-HP-%", "HP %").SetValue(new Slider(15)));
-
 
 		//Misc
 		Config.AddSubMenu(new Menu("Misc", "Misc"));
@@ -223,8 +221,9 @@ internal class yetAnotherEzreal
 				minion =>
 					minion.IsValidTarget(_q.Range) && minion.Team != GameObjectTeam.Neutral &&
 					(Config.Item("Farm-Use-Q-Select").GetValue<StringList>().SelectedIndex == 2 ||
+					(Config.Item("Farm-Use-Q-Select").GetValue<StringList>().SelectedIndex == 1 &&
 					(minion.SkinName == "SRU_ChaosMinionSiege" | minion.SkinName == "SRU_OrderMinionSiege" |
-					minion.SkinName == "SRU_ChaosMinionSuper" | minion.SkinName == "SRU_OrderMinionSuper")) &&
+					minion.SkinName == "SRU_ChaosMinionSuper" | minion.SkinName == "SRU_OrderMinionSuper"))) &&
 					HealthPrediction.LaneClearHealthPrediction(
 						minion, (int)((Player.AttackDelay * 1000) * 2f), 0) <=
 					_q.GetDamage(minion));
@@ -235,7 +234,7 @@ internal class yetAnotherEzreal
 		if (!Config.Item("Farm-Use-Q").GetValue<bool>() || _orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo || _orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.None) return;
 
 		foreach (var minionGoingToDie in MinionManager.GetMinions(_q.Range).Where(minion => target.NetworkId != minion.NetworkId && _q.IsReady()
-			&& HealthPrediction.GetHealthPrediction(minion, (int)((Player.AttackDelay * 1000) * 2.6f + Game.Ping / 2), 0) <= 0 && _q.GetDamage(minion) >= minion.Health))
+			&& HealthPrediction.GetHealthPrediction(minion, (int)((Player.AttackDelay * 1000) * 2.65f + Game.Ping / 2), 0) <= 0 && _q.GetDamage(minion) >= minion.Health))
 		{
 			var qHit = _q.GetPrediction(minionGoingToDie);
 			if (qHit.Hitchance >= HitChance.High)
@@ -297,7 +296,7 @@ internal class yetAnotherEzreal
 			}
 		}
 
-		if (Config.Item("Combo-Use-W").GetValue<bool>() && _w.IsReady())
+		if (Config.Item("Combo-Use-W").GetValue<bool>() && _w.IsReady() && Player.Distance(target) < _w.Range)
 		{
 			var wHit = _w.GetPrediction(target);
 			if (wHit.Hitchance >= HitChance.VeryHigh)
@@ -308,7 +307,7 @@ internal class yetAnotherEzreal
 					var landingPosition = Player.Position.Extend(wHit.CastPosition, _e.Range);
 
 					if (!landingPosition.UnderTurret(true) && !landingPosition.IsWall() && //Check if landing position is definitely not a wall or a turret
-						ObjectManager.Get<Obj_AI_Hero>().Count(enemy => enemy.IsEnemy && enemy.IsValidTarget(600, true, target.Position)) - 1 //The number of enemies, besides the target, near the target
+						ObjectManager.Get<Obj_AI_Hero>().Count(enemy => enemy.IsEnemy && enemy.IsValidTarget(600, true, target.Position)) - 1 //The number of enemies, other than the target, near the target
 						<= ObjectManager.Get<Obj_AI_Hero>().Count(ally => ally.IsAlly && !ally.IsDead && ally.Distance(target) < 600) && //The number of allies near the target
 						(!target.IsMelee() || //If target is range, then just go ahead and land
 						 (target.IsMelee() && (landingPosition.Distance(target.Position) + Player.BoundingRadius + 50 > target.AttackRange + target.BoundingRadius)))) //If target is melee, make sure you don't land in its AA range
@@ -360,10 +359,10 @@ internal class yetAnotherEzreal
 			if (Config.Item("Harass-Use-Q").GetValue<bool>() && _q.IsReady() && qPred.Hitchance >= HitChance.VeryHigh)
 				_q.Cast(qPred.CastPosition);
 
-			if (Config.Item("Harass-Use-W").GetValue<bool>() && _w.IsReady())
+			if (Config.Item("Harass-Use-W").GetValue<bool>() && _w.IsReady() && Player.Distance(enemyInRange) < _w.Range)
 				_w.Cast(enemyInRange);
 
-			if (!_e.IsReady() || !_q.IsReady() || qPred.Hitchance != HitChance.Collision ||
+			if (!_e.IsReady() || !_q.IsReady() || qPred.Hitchance > HitChance.Impossible || Player.Distance(enemyInRange) > _q.Range ||
                 Player.Mana <= (Player.Spellbook.GetSpell(SpellSlot.E).ManaCost + Player.Spellbook.GetSpell(SpellSlot.Q).ManaCost)) return;
 
 			var c = new Geometry.Circle(Player.Position.To2D(), 490);
@@ -372,7 +371,8 @@ internal class yetAnotherEzreal
 			for (var i = 1; i < 3; i++)
 			{
 				var pointTo = point.ElementAt(i).To3D();
-				if (pointTo.IsWall() || ObjectManager.Get<Obj_AI_Hero>().Any(enemy => enemy != enemyInRange && enemy.IsValidTarget(300, true, pointTo))) continue;
+				if (pointTo.IsWall() || pointTo.UnderTurret(true) ||
+					ObjectManager.Get<Obj_AI_Hero>().Any(enemy => enemy != enemyInRange && enemy.IsValidTarget(300, true, pointTo))) continue;
 
 				var qNewPred = new PredictionInput
 				{
@@ -402,8 +402,9 @@ internal class yetAnotherEzreal
 		foreach (var enemyMinion in MinionManager.GetMinions(_q.Range, MinionTypes.All, MinionTeam.Enemy, MinionOrderTypes.MaxHealth)
 			.Where(minion => minion.IsValidTarget(_q.Range) &&
 			(Config.Item("Farm-Use-Q-Select").GetValue<StringList>().SelectedIndex == 2 ||
+			(Config.Item("Farm-Use-Q-Select").GetValue<StringList>().SelectedIndex == 1 &&
 			(minion.SkinName == "SRU_ChaosMinionSiege" | minion.SkinName == "SRU_OrderMinionSiege" |
-					minion.SkinName == "SRU_ChaosMinionSuper" | minion.SkinName == "SRU_OrderMinionSuper"))))
+					minion.SkinName == "SRU_ChaosMinionSuper" | minion.SkinName == "SRU_OrderMinionSuper")))))
 		{
 			var qHit = _q.GetPrediction(enemyMinion);
 			if (qHit.Hitchance >= HitChance.High)
@@ -469,13 +470,13 @@ internal class yetAnotherEzreal
 		if (Config.Item("Drawing-E-Position").GetValue<bool>())
 			DrawE();
 
-		if (Config.Item("Drawing-Q-Range").GetValue<Circle>().Active && (Config.Item("Drawing-Q-Ready").GetValue<bool>() && _q.IsReady()))
+		if (Config.Item("Drawing-Q-Range").GetValue<Circle>().Active || (Config.Item("Drawing-Q-Ready").GetValue<bool>() && _q.IsReady()))
 			Utility.DrawCircle(Player.Position, _q.Range, Config.Item("Drawing-Q-Range").GetValue<Circle>().Color, 7, 20);
 
-		if (Config.Item("Drawing-W-Range").GetValue<Circle>().Active && (Config.Item("Drawing-W-Ready").GetValue<bool>() && _w.IsReady()))
+		if (Config.Item("Drawing-W-Range").GetValue<Circle>().Active || (Config.Item("Drawing-W-Ready").GetValue<bool>() && _w.IsReady()))
 			Utility.DrawCircle(Player.Position, _w.Range, Config.Item("Drawing-W-Range").GetValue<Circle>().Color, 7, 20);
 
-		if (Config.Item("Drawing-E-Range").GetValue<Circle>().Active && (Config.Item("Drawing-E-Ready").GetValue<bool>() && _e.IsReady()))
+		if (Config.Item("Drawing-E-Range").GetValue<Circle>().Active || (Config.Item("Drawing-E-Ready").GetValue<bool>() && _e.IsReady()))
 			Utility.DrawCircle(Player.Position, _e.Range, Config.Item("Drawing-E-Range").GetValue<Circle>().Color, 7, 20);
 
 	}
@@ -508,7 +509,7 @@ internal class yetAnotherEzreal
 		var readyColor = _e.IsReady() ? System.Drawing.Color.Green : System.Drawing.Color.Red;
 
 		Drawing.DrawLine(Drawing.WorldToScreen(myPos + directionPerpendicular), Drawing.WorldToScreen(CastPosition), 2, readyColor);
-		Utility.DrawCircle(CastPosition, 50, readyColor, 5, 20);
+		Utility.DrawCircle(CastPosition, 50, readyColor, 5, 15);
 	}
 }
 
