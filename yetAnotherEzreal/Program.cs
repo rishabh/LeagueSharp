@@ -32,8 +32,7 @@ internal class yetAnotherEzreal
 	///Offensive - minus 25 range
 	private static Items.Item BilgeCut = new Items.Item(3144, 475);
 	private static Items.Item BotRK = new Items.Item(3153, 425);
-	private static Items.Item RavHydra = new Items.Item(3074, 375);
-	private static Items.Item Tiamat = new Items.Item(3077, 375);
+	private static Items.Item HexTech = new Items.Item(3146, 675);
 	private static Items.Item Dfg;
 
 	///Defensive - minus 10 range
@@ -117,8 +116,9 @@ internal class yetAnotherEzreal
 
 		//Farm
 		Config.AddSubMenu(new Menu("Farm", "Farm"));
-		Config.SubMenu("Farm").AddItem(new MenuItem("Farm-Use-Q", "Use Smart Q").SetValue(true));
+		Config.SubMenu("Farm").AddItem(new MenuItem("Farm-Use-Q", "Use Smart Q for LH").SetValue(true));
 		Config.SubMenu("Farm").AddItem(new MenuItem("Farm-Use-Q-Select", "LaneClear/Mixed: Use Q Only On").SetValue(new StringList(new[] { "Off", "Siege/Super", "All" }, 1)));
+        Config.SubMenu("Farm").AddItem(new MenuItem("Farm-Mana", "Minimum Mana %").SetValue(new Slider(30)));
 
 		//Killsteal
 		Config.AddSubMenu(new Menu("Killsteal", "Killsteal"));
@@ -144,6 +144,7 @@ internal class yetAnotherEzreal
 			Config.SubMenu("Harass").SubMenu("Harass-Champions").AddItem(new MenuItem("Harass-" + enemy.ChampionName, enemy.ChampionName)
 				.SetValue(ChampionPriority.Contains(enemy.ChampionName)));
 		}
+        Config.SubMenu("Harass").AddItem(new MenuItem("Harass-Mana", "Minimum Mana %").SetValue(new Slider(30)));
 
 		//Items
 		Config.AddSubMenu(new Menu("Items", "Items"));
@@ -153,9 +154,8 @@ internal class yetAnotherEzreal
 		Config.SubMenu("Items").SubMenu("Offense").AddItem(new MenuItem("BilgeCut", "Bilgewater Cutlass").SetValue(true));
 		Config.SubMenu("Items").SubMenu("Offense").AddItem(new MenuItem("BotRK", "Bot Ruined King").SetValue(true));
 		Config.SubMenu("Items").SubMenu("Offense").AddItem(new MenuItem("DFG", "Deathfire Grasp").SetValue(true));
-		Config.SubMenu("Items").SubMenu("Offense").AddItem(new MenuItem("RavHydra", "Ravenous Hydra").SetValue(true));
+		Config.SubMenu("Items").SubMenu("Offense").AddItem(new MenuItem("HexTech", "Hextech Gunblade").SetValue(true));
 		Config.SubMenu("Items").SubMenu("Offense").AddItem(new MenuItem("RanOmen", "Randuin's Omen").SetValue(true));
-		Config.SubMenu("Items").SubMenu("Offense").AddItem(new MenuItem("Tiamat", "Tiamat").SetValue(true));
 
 		//'Defensive	
 		Config.SubMenu("Items").AddSubMenu(new Menu("Defense", "Defense"));
@@ -265,13 +265,16 @@ internal class yetAnotherEzreal
 		if (Config.Item("Drawing-E-Position").GetValue<bool>() && Config.Item("Drawing-Enabled").GetValue<bool>())
 			CastPosition = GetELandingPosition();
 
-		if (Config.Item("Farm-Use-Q-Select").GetValue<StringList>().SelectedIndex != 0 && _q.IsReady() && (_orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear || _orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Mixed) && !ShouldWait())
+		if (Config.Item("Farm-Use-Q-Select").GetValue<StringList>().SelectedIndex != 0 && _q.IsReady() &&
+            (Player.Mana / Player.MaxMana) * 100 >= Config.Item("Farm-Mana").GetValue<Slider>().Value &&
+            (_orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear || _orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Mixed) && !ShouldWait())
 			Farm();
 
 		if (Config.Item("Killsteal-Enabled").GetValue<bool>())
 			KillSteal();
 
-		if (Config.Item("Harass-Key").GetValue<KeyBind>().Active || Config.Item("Harass-Toggle").GetValue<bool>())
+		if ((Config.Item("Harass-Key").GetValue<KeyBind>().Active || Config.Item("Harass-Toggle").GetValue<bool>()) &&
+            (Player.Mana / Player.MaxMana) * 100 >= Config.Item("Harass-Mana").GetValue<Slider>().Value)
 			Harass();
 
 		var target = TargetSelector.GetTarget(_q.Range, TargetSelector.DamageType.Magical, false);
@@ -335,12 +338,10 @@ internal class yetAnotherEzreal
 			Items.UseItem(Dfg.Id, target);
 		if (Config.Item("BotRK").GetValue<bool>() && Items.HasItem(BotRK.Id) && BotRK.IsReady())
 			Items.UseItem(BotRK.Id, target);
-		if (Config.Item("RavHydra").GetValue<bool>() && Items.HasItem(RavHydra.Id) && RavHydra.IsReady())
-			Items.UseItem(RavHydra.Id, Player);
+		if (Config.Item("HexTech").GetValue<bool>() && Items.HasItem(HexTech.Id) && HexTech.IsReady())
+			Items.UseItem(HexTech.Id, Player);
 		if (Config.Item("BilgeCut").GetValue<bool>() && Items.HasItem(BilgeCut.Id) && BilgeCut.IsReady())
 			Items.UseItem(BilgeCut.Id, target);
-		if (Config.Item("Tiamat").GetValue<bool>() && Items.HasItem(Tiamat.Id) && Tiamat.IsReady())
-			Items.UseItem(Tiamat.Id, Player);
 		if (Config.Item("RanOmen").GetValue<bool>() && Items.HasItem(RanOmen.Id) && RanOmen.IsReady() && Player.Distance(target) <= 490)
 			Items.UseItem(RanOmen.Id, Player);
 	}
@@ -362,7 +363,8 @@ internal class yetAnotherEzreal
 			if (Config.Item("Harass-Use-W").GetValue<bool>() && _w.IsReady())
 				_w.Cast(enemyInRange);
 
-			if (!_e.IsReady() || !_q.IsReady() || qPred.Hitchance != HitChance.Collision) return;
+			if (!_e.IsReady() || !_q.IsReady() || qPred.Hitchance != HitChance.Collision ||
+                Player.Mana <= (Player.Spellbook.GetSpell(SpellSlot.E).ManaCost + Player.Spellbook.GetSpell(SpellSlot.Q).ManaCost)) return;
 
 			var c = new Geometry.Circle(Player.Position.To2D(), 490);
 			var point = c.ToPolygon().Points.OrderByDescending(vector2 => vector2.Distance(enemyInRange.Position.To2D())).Reverse();
@@ -370,7 +372,7 @@ internal class yetAnotherEzreal
 			for (var i = 1; i < 3; i++)
 			{
 				var pointTo = point.ElementAt(i).To3D();
-				if (pointTo.IsWall()) continue;
+				if (pointTo.IsWall() || ObjectManager.Get<Obj_AI_Hero>().Any(enemy => enemy != enemyInRange && enemy.IsValidTarget(300, true, pointTo))) continue;
 
 				var qNewPred = new PredictionInput
 				{
@@ -399,7 +401,7 @@ internal class yetAnotherEzreal
 	{
 		foreach (var enemyMinion in MinionManager.GetMinions(_q.Range, MinionTypes.All, MinionTeam.Enemy, MinionOrderTypes.MaxHealth)
 			.Where(minion => minion.IsValidTarget(_q.Range) &&
-			(Config.Item("Farm-Use-Q-Select").GetValue<StringList>().SelectedIndex == 1 ||
+			(Config.Item("Farm-Use-Q-Select").GetValue<StringList>().SelectedIndex == 2 ||
 			(minion.SkinName == "SRU_ChaosMinionSiege" | minion.SkinName == "SRU_OrderMinionSiege" |
 					minion.SkinName == "SRU_ChaosMinionSuper" | minion.SkinName == "SRU_OrderMinionSuper"))))
 		{
