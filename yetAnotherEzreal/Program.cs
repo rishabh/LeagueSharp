@@ -31,7 +31,7 @@ internal class yetAnotherEzreal
 	//Items
 	///Offensive - minus 25 range
 	private static Items.Item BilgeCut = new Items.Item(3144, 475);
-	private static Items.Item BoTRK = new Items.Item(3153, 425);
+	private static Items.Item BotRK = new Items.Item(3153, 425);
 	private static Items.Item RavHydra = new Items.Item(3074, 375);
 	private static Items.Item Tiamat = new Items.Item(3077, 375);
 	private static Items.Item Dfg;
@@ -43,7 +43,6 @@ internal class yetAnotherEzreal
 
 	//Drawing
 	private static Vector3 CastPosition;
-	private static bool SummonersRift;
 
 	//Priority
 	private static string[] ChampionPriority =
@@ -82,10 +81,10 @@ internal class yetAnotherEzreal
 			return;
 		}
 
-		_q = new Spell(SpellSlot.Q, 1000);
+		_q = new Spell(SpellSlot.Q, 1150);
 		_q.SetSkillshot(0.25f, 60f, 2000f, true, SkillshotType.SkillshotLine);
 
-		_w = new Spell(SpellSlot.W, 950);
+		_w = new Spell(SpellSlot.W, 1000);
 		_w.SetSkillshot(0.25f, 80f, 1600f, false, SkillshotType.SkillshotLine);
 
 		_e = new Spell(SpellSlot.E, 490);
@@ -114,7 +113,6 @@ internal class yetAnotherEzreal
 		Config.SubMenu("Combo").AddItem(new MenuItem("Combo-Use-Q", "Use Q").SetValue(true));
 		Config.SubMenu("Combo").AddItem(new MenuItem("Combo-Use-W", "Use W").SetValue(true));
 		Config.SubMenu("Combo").AddItem(new MenuItem("Combo-Use-E-W", "Use E For W Boost").SetValue(true));
-		Config.SubMenu("Combo").AddItem(new MenuItem("Combo-Use-E", "Use E").SetValue(true));
 		Config.SubMenu("Combo").AddItem(new MenuItem("Combo-Use-R", "Use R").SetValue(true));
 
 		//Farm
@@ -190,11 +188,6 @@ internal class yetAnotherEzreal
 		if (Utility.Map.GetMap().Type == Utility.Map.MapType.SummonersRift || Utility.Map.GetMap().Type == Utility.Map.MapType.HowlingAbyss)
 		{
 			Dfg = new Items.Item(3128, 750);
-			if (Utility.Map.GetMap().Type == Utility.Map.MapType.SummonersRift)
-			{
-				Config.SubMenu("Drawing").AddItem(new MenuItem("Drawing-Jump-Spots", "Draw Jump Spots").SetValue(false));
-				SummonersRift = true;
-			}
 		}
 		else
 		{
@@ -217,13 +210,10 @@ internal class yetAnotherEzreal
 
 	static void Obj_AI_Base_OnProcessSpellCast(Obj_AI_Base sender, GameObjectProcessSpellCastEventArgs args)
 	{
-		if (!CheckFlag || !sender.IsMe || args.SData.Name != "EzrealEssenceFluxMissile") return;
+		if (!CheckFlag || sender == null || !sender.IsValid|| !sender.IsMe || args.SData.Name != "EzrealEssenceFluxMissile" || !_e.IsReady()) return;
 
-		if (_e.IsReady())
-		{
-			_e.Cast(Player.Position.Extend(args.End, _e.Range));
-			CheckFlag = false;
-		}
+	    _e.Cast(Player.Position.Extend(args.End, _e.Range));
+	    CheckFlag = false;
 	}
 	static bool ShouldWait()
 	{
@@ -248,7 +238,7 @@ internal class yetAnotherEzreal
 			&& HealthPrediction.GetHealthPrediction(minion, (int)((Player.AttackDelay * 1000) * 2.6f + Game.Ping / 2), 0) <= 0 && _q.GetDamage(minion) >= minion.Health))
 		{
 			var qHit = _q.GetPrediction(minionGoingToDie);
-			if (qHit.Hitchance >= HitChance.Medium)
+			if (qHit.Hitchance >= HitChance.High)
 			{
 				_q.Cast(qHit.CastPosition);
 				break;
@@ -310,7 +300,7 @@ internal class yetAnotherEzreal
 			if (wHit.Hitchance >= HitChance.VeryHigh)
 			{
 				_w.Cast(wHit.CastPosition);
-				if (Config.Item("Combo-Use-E-W").GetValue<bool>() && Config.Item("Combo-Use-E").GetValue<bool>() && _e.IsReady())
+				if (Config.Item("Combo-Use-E-W").GetValue<bool>() && _e.IsReady())
 				{
 					var landingPosition = Player.Position.Extend(wHit.CastPosition, _e.Range);
 
@@ -318,7 +308,7 @@ internal class yetAnotherEzreal
 						ObjectManager.Get<Obj_AI_Hero>().Count(enemy => enemy.IsEnemy && enemy.IsValidTarget(600, true, target.Position)) - 1 //The number of enemies, besides the target, near the target
 						<= ObjectManager.Get<Obj_AI_Hero>().Count(ally => ally.IsAlly && !ally.IsDead && ally.Distance(target) < 600) && //The number of allies near the target
 						(!target.IsMelee() || //If target is range, then just go ahead and land
-						 (target.IsMelee() && (landingPosition.Distance(target.Position) + Player.BoundingRadius + 80 > target.AttackRange + target.BoundingRadius)))) //If target is melee, make sure you don't land in its AA range
+						 (target.IsMelee() && (landingPosition.Distance(target.Position) + Player.BoundingRadius + 50 > target.AttackRange + target.BoundingRadius)))) //If target is melee, make sure you don't land in its AA range
 					{
 						CheckFlag = true;
 
@@ -344,8 +334,8 @@ internal class yetAnotherEzreal
 	{
 		if (Config.Item("DFG").GetValue<bool>() && Items.HasItem(Dfg.Id) && Dfg.IsReady())
 			Items.UseItem(Dfg.Id, target);
-		if (Config.Item("BotRK").GetValue<bool>() && Items.HasItem(BoTRK.Id) && BoTRK.IsReady())
-			Items.UseItem(BoTRK.Id, target);
+		if (Config.Item("BotRK").GetValue<bool>() && Items.HasItem(BotRK.Id) && BotRK.IsReady())
+			Items.UseItem(BotRK.Id, target);
 		if (Config.Item("RavHydra").GetValue<bool>() && Items.HasItem(RavHydra.Id) && RavHydra.IsReady())
 			Items.UseItem(RavHydra.Id, Player);
 		if (Config.Item("BilgeCut").GetValue<bool>() && Items.HasItem(BilgeCut.Id) && BilgeCut.IsReady())
@@ -373,7 +363,7 @@ internal class yetAnotherEzreal
 			if (Config.Item("Harass-Use-W").GetValue<bool>() && _w.IsReady())
 				_w.Cast(enemyInRange);
 
-			if (!_e.IsReady() || !_q.IsReady() || qPred.Hitchance > HitChance.Impossible && Player.Distance(enemyInRange) < _q.Range - 100) return;//|| qPred.Hitchance > HitChance.Medium) return;
+			if (!_e.IsReady() || !_q.IsReady() || qPred.Hitchance != HitChance.Collision) return;
 
 			var c = new Geometry.Circle(Player.Position.To2D(), 490);
 			var point = c.ToPolygon().Points.OrderByDescending(vector2 => vector2.Distance(enemyInRange.Position.To2D())).Reverse();
@@ -442,16 +432,14 @@ internal class yetAnotherEzreal
 				var wHit = _w.GetPrediction(enemyInRange);
 				if (wHit.Hitchance >= HitChance.VeryHigh)
 					_w.Cast(enemyInRange);
-			}
-			else if (Config.Item("Killsteal-Use-BilgeCut").GetValue<bool>() && Items.HasItem(BilgeCut.Id) && BilgeCut.IsReady() &&
+			}else if (Config.Item("Killsteal-Use-BilgeCut").GetValue<bool>() && Items.HasItem(BilgeCut.Id) && BilgeCut.IsReady() &&
 			         Player.GetItemDamage(enemyInRange, Damage.DamageItems.Bilgewater) > enemyInRange.Health)
 			{
 				Items.UseItem(BilgeCut.Id, enemyInRange);
-			}
-			else if (Config.Item("Killsteal-Use-BotRK").GetValue<bool>() && Items.HasItem(BoTRK.Id) && BoTRK.IsReady() &&
+			}else if (Config.Item("Killsteal-Use-BotRK").GetValue<bool>() && Items.HasItem(BotRK.Id) && BotRK.IsReady() &&
 			         Player.GetItemDamage(enemyInRange, Damage.DamageItems.Botrk) > enemyInRange.Health)
 			{
-				Items.UseItem(BoTRK.Id, enemyInRange);
+				Items.UseItem(BotRK.Id, enemyInRange);
 			}else if (Config.Item("Killsteal-Use-Q").GetValue<bool>() && Config.Item("Killsteal-Use-W").GetValue<bool>() &&
 				_q.IsReady() && _w.IsReady() &&
 				(qDamage + wDamage > enemyInRange.Health))
@@ -477,32 +465,22 @@ internal class yetAnotherEzreal
 		if (Player.IsDead || !Config.Item("Drawing-Enabled").GetValue<bool>())
 			return;
 
-		if (Player.HasBuff("Essence Flux"))
-			Drawing.DrawText(Player.HPBarPosition.X, Player.HPBarPosition.Y - 50, System.Drawing.Color.Red, "Has");
-
-		if (SummonersRift && Config.Item("Drawing-Jump-Spots").GetValue<bool>())
-		{
-			var eReady = _e.IsReady() ? System.Drawing.Color.Lime : System.Drawing.Color.Red;
-			foreach (var spot in Geometry.JumpList.Where(vector => Player.Distance(vector) < 1500))
-			{
-				Utility.DrawCircle(spot, 50, eReady, 5, 10);
-			}
-		}
-
 		if (Config.Item("Drawing-E-Position").GetValue<bool>())
 			DrawE();
 
 		if (Config.Item("Drawing-Q-Range").GetValue<Circle>().Active && (Config.Item("Drawing-Q-Ready").GetValue<bool>() && _q.IsReady()))
-			Utility.DrawCircle(Player.Position, _q.Range, Config.Item("Drawing-Q-Range").GetValue<Circle>().Color, 7);
+			Utility.DrawCircle(Player.Position, _q.Range, Config.Item("Drawing-Q-Range").GetValue<Circle>().Color, 7, 20);
 
 		if (Config.Item("Drawing-W-Range").GetValue<Circle>().Active && (Config.Item("Drawing-W-Ready").GetValue<bool>() && _w.IsReady()))
-			Utility.DrawCircle(Player.Position, _w.Range, Config.Item("Drawing-W-Range").GetValue<Circle>().Color, 7);
+			Utility.DrawCircle(Player.Position, _w.Range, Config.Item("Drawing-W-Range").GetValue<Circle>().Color, 7, 20);
 
 		if (Config.Item("Drawing-E-Range").GetValue<Circle>().Active && (Config.Item("Drawing-E-Ready").GetValue<bool>() && _e.IsReady()))
-			Utility.DrawCircle(Player.Position, _e.Range, Config.Item("Drawing-E-Range").GetValue<Circle>().Color, 7);
+			Utility.DrawCircle(Player.Position, _e.Range, Config.Item("Drawing-E-Range").GetValue<Circle>().Color, 7, 20);
 
 	}
 
+
+    //Credits to Honda (I think)
 	private static Vector3 GetELandingPosition()
 	{
 		Vector3 castPoint = Player.Distance(Game.CursorPos) <= _e.Range
@@ -512,8 +490,7 @@ internal class yetAnotherEzreal
 		for (var i = 0; i < 500; i += 9)
 			for (double j = 0; j < 2 * Math.PI + 0.2; j += 0.2)
 			{
-				var c = new Vector3((castPoint.X + i * (float)Math.Cos(j)), castPoint.Y + i * (float)Math.Sin(j),
-					castPoint.Z);
+				var c = new Vector3((castPoint.X + i * (float)Math.Cos(j)), castPoint.Y + i * (float)Math.Sin(j), castPoint.Z);
 				if (!c.IsWall())
 					return c;
 			}
