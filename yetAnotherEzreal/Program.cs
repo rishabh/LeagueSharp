@@ -30,15 +30,18 @@ internal class yetAnotherEzreal
 	private static bool CheckFlag;
 	//Items
 	///Offensive - minus 25 range
-	private static Items.Item BilgeCut = new Items.Item(3144, 475);
-	private static Items.Item BotRK = new Items.Item(3153, 425);
-	private static Items.Item HexTech = new Items.Item(3146, 675);
-	private static Items.Item Dfg;
+	private static Dictionary<string, Items.Item> OffensiveItems = new Dictionary<string, Items.Item>()
+	{
+		{"Dfg", new Items.Item(3188, 750)},
+		{"Bilgewater", new Items.Item(3144, 475)},
+		{"Botrk",new Items.Item(3153, 425)},
+		{"Hexgun", new Items.Item(3146, 675)},
+		{"RanOmen", new Items.Item(3143, 490)}
+	};
 
 	///Defensive - minus 10 range
 	private static Items.Item LoTIS = new Items.Item(3190, 590);
 	private static Items.Item Zhonya = new Items.Item(3157, 10);
-	private static Items.Item RanOmen = new Items.Item(3143, 490);
 
 	//Drawing
 	private static Vector3 CastPosition;
@@ -82,7 +85,7 @@ internal class yetAnotherEzreal
 		_q = new Spell(SpellSlot.Q, 1150);
 		_q.SetSkillshot(0.25f, 60f, 2000f, true, SkillshotType.SkillshotLine);
 
-		_w = new Spell(SpellSlot.W, 1000);
+		_w = new Spell(SpellSlot.W, 950);
 		_w.SetSkillshot(0.25f, 80f, 1600f, false, SkillshotType.SkillshotLine);
 
 		_e = new Spell(SpellSlot.E, 490);
@@ -94,7 +97,6 @@ internal class yetAnotherEzreal
 
 		//Main Menu
 		Config = new Menu("yA-Ezreal", "yA-Ezreal", true);
-
 		//Orbwalker
 		Config.AddSubMenu(new Menu("Orbwalking", "Orbwalking"));
 		_orbwalker = new Orbwalking.Orbwalker(Config.SubMenu("Orbwalking"));
@@ -124,9 +126,10 @@ internal class yetAnotherEzreal
 		Config.SubMenu("Killsteal").AddItem(new MenuItem("Killsteal-Enabled", "Enabled").SetValue(true));
 		Config.SubMenu("Killsteal").AddItem(new MenuItem("Killsteal-Use-Q", "Use Q").SetValue(true));
 		Config.SubMenu("Killsteal").AddItem(new MenuItem("Killsteal-Use-W", "Use W").SetValue(true));
-		Config.SubMenu("Killsteal").AddItem(new MenuItem("Killsteal-Use-BotRK", "Use Bot Ruined King").SetValue(true));
-		Config.SubMenu("Killsteal").AddItem(new MenuItem("Killsteal-Use-BilgeCut", "Use Bilgewater Cutlass").SetValue(true));
+		Config.SubMenu("Killsteal").AddItem(new MenuItem("Killsteal-Use-Botrk", "Use Bot Ruined King").SetValue(true));
+		Config.SubMenu("Killsteal").AddItem(new MenuItem("Killsteal-Use-Bilgewater", "Use Bilgewater Cutlass").SetValue(true));
 		Config.SubMenu("Killsteal").AddItem(new MenuItem("Killsteal-Use-Ignite", "Use Ignite").SetValue(true));
+		Config.SubMenu("Killsteal").AddItem(new MenuItem("Killsteal-Use-R", "Use R on Recalling Champions").SetValue(true));
 
 		//Harass
 		Config.AddSubMenu(new Menu("Harass", "Harass"));
@@ -143,17 +146,19 @@ internal class yetAnotherEzreal
 			Config.SubMenu("Harass").SubMenu("Harass-Champions").AddItem(new MenuItem("Harass-" + enemy.ChampionName, enemy.ChampionName)
 				.SetValue(ChampionPriority.Contains(enemy.ChampionName)));
 		}
-        Config.SubMenu("Harass").AddItem(new MenuItem("Harass-Mana", "Minimum Mana %").SetValue(new Slider(30)));
+		Config.SubMenu("Harass").AddItem(new MenuItem("Harass-Mana-Q", "Minimum Mana % for Q").SetValue(new Slider(30)));
+		Config.SubMenu("Harass").AddItem(new MenuItem("Harass-Mana-W", "Minimum Mana % for W").SetValue(new Slider(30)));
+		Config.SubMenu("Harass").AddItem(new MenuItem("Harass-Mana-E", "Minimum Mana % for E").SetValue(new Slider(40)));
 
 		//Items
 		Config.AddSubMenu(new Menu("Items", "Items"));
 		Config.SubMenu("Items").AddItem(new MenuItem("Items-Enabled", "Enabled").SetValue(true));
 		//'Offensive
 		Config.SubMenu("Items").AddSubMenu(new Menu("Offense", "Offense"));
-		Config.SubMenu("Items").SubMenu("Offense").AddItem(new MenuItem("BilgeCut", "Bilgewater Cutlass").SetValue(true));
-		Config.SubMenu("Items").SubMenu("Offense").AddItem(new MenuItem("BotRK", "Bot Ruined King").SetValue(true));
-		Config.SubMenu("Items").SubMenu("Offense").AddItem(new MenuItem("DFG", "Deathfire Grasp").SetValue(true));
-		Config.SubMenu("Items").SubMenu("Offense").AddItem(new MenuItem("HexTech", "Hextech Gunblade").SetValue(true));
+		Config.SubMenu("Items").SubMenu("Offense").AddItem(new MenuItem("Bilgewater", "Bilgewater Cutlass").SetValue(true));
+		Config.SubMenu("Items").SubMenu("Offense").AddItem(new MenuItem("Botrk", "Bot Ruined King").SetValue(true));
+		Config.SubMenu("Items").SubMenu("Offense").AddItem(new MenuItem("Dfg", "Deathfire Grasp").SetValue(true));
+		Config.SubMenu("Items").SubMenu("Offense").AddItem(new MenuItem("Hexgun", "Hextech Gunblade").SetValue(true));
 		Config.SubMenu("Items").SubMenu("Offense").AddItem(new MenuItem("RanOmen", "Randuin's Omen").SetValue(true));
 
 		//'Defensive	
@@ -169,7 +174,7 @@ internal class yetAnotherEzreal
 
 		//Misc
 		Config.AddSubMenu(new Menu("Misc", "Misc"));
-		Config.SubMenu("Misc").AddItem(new MenuItem("Misc-Use-W", "Use W on Ally vs. Turret").SetValue(false));
+		Config.SubMenu("Misc").AddItem(new MenuItem("Misc-Use-W", "Use W on Ally vs. Turret (WIP)").SetValue(false));
 
 		//Drawing
 		Config.AddSubMenu(new Menu("Drawing", "Drawing"));
@@ -185,11 +190,7 @@ internal class yetAnotherEzreal
 		// Map Specific
 		if (Utility.Map.GetMap().Type == Utility.Map.MapType.SummonersRift || Utility.Map.GetMap().Type == Utility.Map.MapType.HowlingAbyss)
 		{
-			Dfg = new Items.Item(3128, 750);
-		}
-		else
-		{
-			Dfg = new Items.Item(3188, 750);
+			OffensiveItems["Dfg"] = new Items.Item(3128, 750);
 		}
 
 		Config.AddToMainMenu();
@@ -242,7 +243,6 @@ internal class yetAnotherEzreal
 				_q.Cast(qHit.CastPosition);
 				break;
 			}
-
 		}
 	}
 
@@ -272,8 +272,7 @@ internal class yetAnotherEzreal
 		if (Config.Item("Killsteal-Enabled").GetValue<bool>())
 			KillSteal();
 
-		if ((Config.Item("Harass-Key").GetValue<KeyBind>().Active || Config.Item("Harass-Toggle").GetValue<bool>()) &&
-            (Player.Mana / Player.MaxMana) * 100 >= Config.Item("Harass-Mana").GetValue<Slider>().Value)
+		if ((Config.Item("Harass-Key").GetValue<KeyBind>().Active || Config.Item("Harass-Toggle").GetValue<bool>()))         
 			Harass();
 
 		var target = TargetSelector.GetTarget(_q.Range, TargetSelector.DamageType.Magical, false);
@@ -333,16 +332,13 @@ internal class yetAnotherEzreal
 
 	private static void CastOffensiveItems(Obj_AI_Hero target)
 	{
-		if (Config.Item("DFG").GetValue<bool>() && Items.HasItem(Dfg.Id) && Dfg.IsReady())
-			Items.UseItem(Dfg.Id, target);
-		if (Config.Item("BotRK").GetValue<bool>() && Items.HasItem(BotRK.Id) && BotRK.IsReady())
-			Items.UseItem(BotRK.Id, target);
-		if (Config.Item("HexTech").GetValue<bool>() && Items.HasItem(HexTech.Id) && HexTech.IsReady())
-			Items.UseItem(HexTech.Id, Player);
-		if (Config.Item("BilgeCut").GetValue<bool>() && Items.HasItem(BilgeCut.Id) && BilgeCut.IsReady())
-			Items.UseItem(BilgeCut.Id, target);
-		if (Config.Item("RanOmen").GetValue<bool>() && Items.HasItem(RanOmen.Id) && RanOmen.IsReady() && Player.Distance(target) <= 490)
-			Items.UseItem(RanOmen.Id, Player);
+		foreach (var item in OffensiveItems.Where(item => Config.Item(item.Key).GetValue<bool>() && Items.HasItem(item.Value.Id) && item.Value.IsReady()))
+		{
+			if (item.Key == "RanOmen" && Player.Distance(target) <= 490)
+				Items.UseItem(item.Value.Id, target);
+			else
+				Items.UseItem(item.Value.Id, target);
+		}
 	}
 
 	private static void Harass()
@@ -355,15 +351,18 @@ internal class yetAnotherEzreal
 								Config.Item("Harass-" + enemy.ChampionName).GetValue<bool>()))
 		{
 			var qPred = _q.GetPrediction(enemyInRange);
+			var manaPercent = (Player.Mana/Player.MaxMana)*100;
 
-			if (Config.Item("Harass-Use-Q").GetValue<bool>() && _q.IsReady() && qPred.Hitchance >= HitChance.VeryHigh)
+			if (Config.Item("Harass-Use-Q").GetValue<bool>() && _q.IsReady() && manaPercent >= Config.Item("Harass-Mana-Q").GetValue<Slider>().Value && qPred.Hitchance >= HitChance.VeryHigh)
 				_q.Cast(qPred.CastPosition);
 
-			if (Config.Item("Harass-Use-W").GetValue<bool>() && _w.IsReady() && Player.Distance(enemyInRange) < _w.Range)
+			if (Config.Item("Harass-Use-W").GetValue<bool>() && _w.IsReady() &&manaPercent >= Config.Item("Harass-Mana-W").GetValue<Slider>().Value && Player.Distance(enemyInRange) < _w.Range)
 				_w.Cast(enemyInRange);
 
 			if (!_e.IsReady() || !_q.IsReady() || qPred.Hitchance > HitChance.Impossible || Player.Distance(enemyInRange) > _q.Range ||
-                Player.Mana <= (Player.Spellbook.GetSpell(SpellSlot.E).ManaCost + Player.Spellbook.GetSpell(SpellSlot.Q).ManaCost)) return;
+                Player.Mana <= (Player.Spellbook.GetSpell(SpellSlot.E).ManaCost + Player.Spellbook.GetSpell(SpellSlot.Q).ManaCost) ||
+				!Config.Item("Harass-Use-E").GetValue<bool>() ||
+				manaPercent < Config.Item("Harass-Mana-E").GetValue<Slider>().Value) return;
 
 			var c = new Geometry.Circle(Player.Position.To2D(), 490);
 			var point = c.ToPolygon().Points.OrderByDescending(vector2 => vector2.Distance(enemyInRange.Position.To2D())).Reverse();
@@ -417,48 +416,61 @@ internal class yetAnotherEzreal
 
 	private static void KillSteal()
 	{
-		foreach (var enemyInRange in ObjectManager.Get<Obj_AI_Hero>().Where(enemy => enemy.IsValidTarget(_q.Range)))
+		foreach (var enemyInRange in ObjectManager.Get<Obj_AI_Hero>())
 		{
-			var qDamage = _q.GetDamage(enemyInRange);
-			var wDamage = _w.GetDamage(enemyInRange);
+			if (enemyInRange.IsValidTarget(_q.Range))
+			{
+				var qDamage = _q.GetDamage(enemyInRange);
+				var wDamage = _w.GetDamage(enemyInRange);
 
-			if (Config.Item("Killsteal-Use-Q").GetValue<bool>() && _q.IsReady() &&
-				qDamage >= enemyInRange.Health)
-			{
-				var qHit = _q.GetPrediction(enemyInRange);
-				if (qHit.Hitchance >= HitChance.VeryHigh)
-					_q.Cast(enemyInRange);
-			}else if (Config.Item("Killsteal-Use-W").GetValue<bool>() && _w.IsReady() &&
-				wDamage >= enemyInRange.Health)
-			{
-				var wHit = _w.GetPrediction(enemyInRange);
-				if (wHit.Hitchance >= HitChance.VeryHigh)
-					_w.Cast(enemyInRange);
-			}else if (Config.Item("Killsteal-Use-BilgeCut").GetValue<bool>() && Items.HasItem(BilgeCut.Id) && BilgeCut.IsReady() &&
-			         Player.GetItemDamage(enemyInRange, Damage.DamageItems.Bilgewater) > enemyInRange.Health)
-			{
-				Items.UseItem(BilgeCut.Id, enemyInRange);
-			}else if (Config.Item("Killsteal-Use-BotRK").GetValue<bool>() && Items.HasItem(BotRK.Id) && BotRK.IsReady() &&
-			         Player.GetItemDamage(enemyInRange, Damage.DamageItems.Botrk) > enemyInRange.Health)
-			{
-				Items.UseItem(BotRK.Id, enemyInRange);
-			}else if (Config.Item("Killsteal-Use-Q").GetValue<bool>() && Config.Item("Killsteal-Use-W").GetValue<bool>() &&
-				_q.IsReady() && _w.IsReady() &&
-				(qDamage + wDamage > enemyInRange.Health))
-			{
-				var wHit = _w.GetPrediction(enemyInRange);
-				var qHit = _q.GetPrediction(enemyInRange);
-
-				if (wHit.Hitchance >= HitChance.VeryHigh && qHit.Hitchance >= HitChance.VeryHigh)
+				if (Config.Item("Killsteal-Use-Q").GetValue<bool>() && _q.IsReady() &&
+					qDamage >= enemyInRange.Health)
 				{
+					var qHit = _q.GetPrediction(enemyInRange);
+					if (qHit.Hitchance >= HitChance.VeryHigh)
+						_q.Cast(enemyInRange);
+				}
+				else if (Config.Item("Killsteal-Use-W").GetValue<bool>() && _w.IsReady() && Player.Distance(enemyInRange) < _w.Range &&
+				   wDamage >= enemyInRange.Health)
+				{
+					var wHit = _w.GetPrediction(enemyInRange);
+					if (wHit.Hitchance >= HitChance.VeryHigh)
+						_w.Cast(enemyInRange);
+				}
+				else if (Config.Item("Killsteal-Use-Bilgewater").GetValue<bool>() && Items.HasItem(OffensiveItems["Bilgewater"].Id) && OffensiveItems["Bilgewater"].IsReady() &&
+						 Player.GetItemDamage(enemyInRange, Damage.DamageItems.Bilgewater) > enemyInRange.Health)
+				{
+					Items.UseItem(OffensiveItems["Bilgewater"].Id, enemyInRange);
+				}
+				else if (Config.Item("Killsteal-Use-Botrk").GetValue<bool>() && Items.HasItem(OffensiveItems["Botrk"].Id) && OffensiveItems["Botrk"].IsReady() &&
+						 Player.GetItemDamage(enemyInRange, Damage.DamageItems.Botrk) > enemyInRange.Health)
+				{
+					Items.UseItem(OffensiveItems["Botrk"].Id, enemyInRange);
+				}
+				else if (Config.Item("Killsteal-Use-Q").GetValue<bool>() && Config.Item("Killsteal-Use-W").GetValue<bool>() &&
+				   _q.IsReady() && _w.IsReady() && Player.Distance(enemyInRange) < _w.Range &&
+				   (qDamage + wDamage > enemyInRange.Health))
+				{
+					var wHit = _w.GetPrediction(enemyInRange);
+					var qHit = _q.GetPrediction(enemyInRange);
+
+					if (wHit.Hitchance < HitChance.VeryHigh || qHit.Hitchance < HitChance.VeryHigh) continue;
 					_q.Cast(enemyInRange);
 					_w.Cast(enemyInRange);
 				}
-			}else if (Config.Item("Killsteal-Use-Ignite").GetValue<bool>() && Ignite != SpellSlot.Unknown &&
-				Player.Spellbook.CanUseSpell(Ignite) == SpellState.Ready && Player.GetSummonerSpellDamage(enemyInRange, Damage.SummonerSpell.Ignite) > enemyInRange.Health)
-			{
-				Player.Spellbook.CastSpell(Ignite, enemyInRange);
+				else if (Config.Item("Killsteal-Use-Ignite").GetValue<bool>() && Ignite != SpellSlot.Unknown &&
+				   Player.Spellbook.CanUseSpell(Ignite) == SpellState.Ready && Player.GetSummonerSpellDamage(enemyInRange, Damage.SummonerSpell.Ignite) > enemyInRange.Health)
+				{
+					Player.Spellbook.CastSpell(Ignite, enemyInRange);
+				}
 			}
+			else if (Config.Item("Killsteal-Use-R").GetValue<bool>() && enemyInRange.IsValidTarget(3000) && enemyInRange.HasBuff("Recall") &&
+				((Game.Time - enemyInRange.Buffs.First(buff => buff.DisplayName == "Recall").StartTime) > 0.5) &&
+				((enemyInRange.Buffs.First(buff => buff.DisplayName == "Recall").EndTime - Game.Time) > 1.5) && 
+				!enemyInRange.InFountain() && _r.GetDamage(enemyInRange) > enemyInRange.Health + 80)
+			{
+				_r.Cast(enemyInRange);
+			}	
 		}
 	}
 
@@ -482,7 +494,7 @@ internal class yetAnotherEzreal
 	}
 
 
-    	//Credits to Honda (I think)
+    //Credits to Honda (I think)
 	private static Vector3 GetELandingPosition()
 	{
 		Vector3 castPoint = Player.Distance(Game.CursorPos) <= _e.Range
@@ -510,6 +522,11 @@ internal class yetAnotherEzreal
 
 		Drawing.DrawLine(Drawing.WorldToScreen(myPos + directionPerpendicular), Drawing.WorldToScreen(CastPosition), 2, readyColor);
 		Utility.DrawCircle(CastPosition, 50, readyColor, 5, 15);
+	}
+
+	private static double ComboDamage(Obj_AI_Hero target)
+	{
+		return Player.GetAutoAttackDamage(target)*2 + OffensiveItems.Where(ranomen => ranomen.Key != "RanOmen").Sum(item => (item.Value.IsOwned() && item.Value.IsReady()) ? Player.GetItemDamage(target, (Damage.DamageItems) Enum.Parse(typeof (Damage.DamageItems), item.Key)) : 0);
 	}
 }
 
