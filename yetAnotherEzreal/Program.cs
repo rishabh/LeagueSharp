@@ -17,7 +17,7 @@ internal class yetAnotherEzreal
 
 
     //Script Information
-    private const string VersionNumber = "1.0.3.0";
+    private const string VersionNumber = "1.0.3.1";
 
     //Ease of use
     private static Obj_AI_Hero Player = ObjectManager.Player;
@@ -367,6 +367,7 @@ internal class yetAnotherEzreal
     #region "R-Snipe on Recall"
 
     private static Vector3 rCastVector;
+    private static Vector3 rPlayerVector;
     private static bool rFlag;
     private static int rNetworkID;
     private static float rCastAtTime;
@@ -374,7 +375,9 @@ internal class yetAnotherEzreal
     static void Obj_AI_Base_OnTeleport(GameObject sender, GameObjectTeleportEventArgs args)
     {
         var recallPacket = Packet.S2C.Teleport.Decoded(sender, args);
-        if (rFlag || recallPacket.Type != Packet.S2C.Teleport.Type.Recall || _orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo) return;
+        if (rFlag || recallPacket.Type != Packet.S2C.Teleport.Type.Recall ||
+            _orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo || !Config.Item("Killsteal-R-Snipe-Enabled").GetValue<bool>() ||
+            Player.HasBuff("Recall")) return;
 
         var hero = ObjectManager.GetUnitByNetworkId<Obj_AI_Hero>(recallPacket.UnitNetworkId);
 
@@ -395,6 +398,7 @@ internal class yetAnotherEzreal
             }
             else
             {
+                rPlayerVector = Player.ServerPosition;
                 rCastVector = hero.Position;
                 rNetworkID = recallPacket.UnitNetworkId;
                 rFlag = true;
@@ -421,7 +425,7 @@ internal class yetAnotherEzreal
         {
             if (Environment.TickCount >= rCastAtTime)
             {
-                if (_r.IsReady())
+                if (_r.IsReady() && Player.Distance(rPlayerVector) < 450)
                 {
                     Console.WriteLine("Casted At: " + Environment.TickCount);
                     _r.Cast(rCastVector);
