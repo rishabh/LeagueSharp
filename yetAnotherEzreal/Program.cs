@@ -54,7 +54,7 @@ internal class yetAnotherEzreal
 		{"RanOmen", new Items.Item(3143, 490)}
 	};
 
-    private static Items.Item Muramana = new Items.Item(3042);
+    private static Items.Item Muramana = new Items.Item(3042, 0);
 
     ///Defensive - minus 10 range
     private static Items.Item LoTIS = new Items.Item(3190, 590);
@@ -196,7 +196,7 @@ internal class yetAnotherEzreal
         Config.SubMenu("Items")
             .SubMenu("Offense")
             .SubMenu("Muramana")
-            .AddItem(new MenuItem("Muramana-Enabled", "Use Muramana Auto-Toggle"));
+            .AddItem(new MenuItem("Muramana-Enabled", "Use Muramana Auto-Toggle").SetValue(true));
         Config.SubMenu("Items")
             .SubMenu("Offense")
             .SubMenu("Muramana")
@@ -276,8 +276,9 @@ internal class yetAnotherEzreal
 
     private static void Orbwalking_OnTargetChange(AttackableUnit oldtarget, AttackableUnit newtarget)
     {
-        if (Config.Item("Muramana-Enabled").GetValue<bool>() && Config.Item("Muramana-Mana").GetValue<Slider>().Value <= (Player.Mana / Player.MaxMana) * 100 && ((_orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo && Config.Item("Combo-Key").GetValue<KeyBind>().Active && !Player.HasBuff("Muramana") && Muramana.IsOwned() &&
-            Muramana.IsReady() && newtarget.Type == GameObjectType.obj_AI_Hero) || (newtarget.Type != GameObjectType.obj_AI_Hero && Player.HasBuff("Muramana") && Muramana.IsOwned() &&
+        if (Config.Item("Muramana-Enabled").GetValue<bool>() && Config.Item("Muramana-Mana").GetValue<Slider>().Value <= (Player.Mana / Player.MaxMana) * 100 &&
+            ((_orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo && Config.Item("Combo-Key").GetValue<KeyBind>().Active && !Player.HasBuff("Muramana") && Muramana.IsOwned() &&
+            Muramana.IsReady() && newtarget.IsValid && newtarget.Type == GameObjectType.obj_AI_Hero) || (newtarget.IsValid && newtarget.Type != GameObjectType.obj_AI_Hero && Player.HasBuff("Muramana") && Muramana.IsOwned() &&
             Muramana.IsReady() && (_orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear || _orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LastHit))))
         {
             Items.UseItem(Muramana.Id);
