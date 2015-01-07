@@ -17,7 +17,7 @@ internal class yetAnotherEzreal
 
 
     //Script Information
-    private const string VersionNumber = "1.0.3.1";
+    private const string VersionNumber = "1.0.3.2";
 
     //Ease of use
     private static Obj_AI_Hero Player = ObjectManager.Player;
@@ -157,7 +157,7 @@ internal class yetAnotherEzreal
             .AddItem(new MenuItem("Killsteal-R-Snipe-Enabled", "Enabled").SetValue(true));
         Config.SubMenu("Killsteal")
             .SubMenu("Killsteal-R-Snipe")
-            .AddItem(new MenuItem("Killsteal-R-Snipe-Range", "Range").SetValue(new Slider(3250, 2750, 4000)));
+            .AddItem(new MenuItem("Killsteal-R-Snipe-Range", "Range").SetValue(new Slider(3250, 2750, 3500)));
         Config.SubMenu("Killsteal")
             .SubMenu("Killsteal-R-Snipe")
             .AddItem(
@@ -375,13 +375,13 @@ internal class yetAnotherEzreal
     static void Obj_AI_Base_OnTeleport(GameObject sender, GameObjectTeleportEventArgs args)
     {
         var recallPacket = Packet.S2C.Teleport.Decoded(sender, args);
-        if (rFlag || recallPacket.Type != Packet.S2C.Teleport.Type.Recall ||
+        if (recallPacket.Type != Packet.S2C.Teleport.Type.Recall ||
             _orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo || !Config.Item("Killsteal-R-Snipe-Enabled").GetValue<bool>() ||
             Player.HasBuff("Recall")) return;
 
         var hero = ObjectManager.GetUnitByNetworkId<Obj_AI_Hero>(recallPacket.UnitNetworkId);
 
-        if (recallPacket.Status == Packet.S2C.Teleport.Status.Start && hero.IsValid &&
+        if (!rFlag && recallPacket.Status == Packet.S2C.Teleport.Status.Start && hero.IsValid &&
             hero.IsValidTarget(Config.Item("Killsteal-R-Snipe-Range").GetValue<Slider>().Value) &&
             _r.GetDamage(hero) > hero.Health + 50)
         {
@@ -406,8 +406,8 @@ internal class yetAnotherEzreal
             }
         }
         else if ((recallPacket.Status == Packet.S2C.Teleport.Status.Abort ||
-            recallPacket.Status == Packet.S2C.Teleport.Status.Finish)
-            && recallPacket.UnitNetworkId == rNetworkID)
+                  recallPacket.Status == Packet.S2C.Teleport.Status.Finish)
+                 && recallPacket.UnitNetworkId == rNetworkID)
         {
             rFlag = false;
             Console.WriteLine("Abort");
@@ -425,7 +425,7 @@ internal class yetAnotherEzreal
         {
             if (Environment.TickCount >= rCastAtTime)
             {
-                if (_r.IsReady() && Player.Distance(rPlayerVector) < 450)
+                if (_r.IsReady() && Player.Distance(rPlayerVector) < 500)
                 {
                     Console.WriteLine("Casted At: " + Environment.TickCount);
                     _r.Cast(rCastVector);
@@ -437,6 +437,10 @@ internal class yetAnotherEzreal
                     rFlag = false;
                     rNetworkID = 0;
                 }
+            } else if (Environment.TickCount < rCastAtTime + 45)
+            {
+                rFlag = false;
+                rNetworkID = 0;
             }
         }
 
