@@ -53,7 +53,7 @@ public class yetAnotherDiana
     // First Start
     static void QuickStart()
 	{
-		if (!Player.Gold.Equals (475f) && Game.Time > 80f)
+	/*	if (!Player.Gold.Equals (475f) && Game.Time > 80f)
 			return;
 
 		if (Smite == SpellSlot.Unknown)
@@ -84,6 +84,7 @@ public class yetAnotherDiana
             Packet.C2S.BuyItem.Encoded(new Packet.C2S.BuyItem.Struct(2003, Player.NetworkId)).Send(); //Health Potion
             Packet.C2S.BuyItem.Encoded(new Packet.C2S.BuyItem.Struct(2003, Player.NetworkId)).Send(); //Health Potion
         }
+     */
 
         if (!Config.Item("Auto Level").GetValue<bool>())
             return;
@@ -246,7 +247,7 @@ public class yetAnotherDiana
 		},2)));
 
         // Map Specific
-        if (Utility.Map.GetMap()._MapType == Utility.Map.MapType.SummonersRift || Utility.Map.GetMap()._MapType == Utility.Map.MapType.HowlingAbyss)
+        if (Utility.Map.GetMap().Type == Utility.Map.MapType.SummonersRift || Utility.Map.GetMap().Type == Utility.Map.MapType.HowlingAbyss)
         {
             Dfg = new Items.Item(3128, 750);
             //>Jungle Jump
@@ -414,7 +415,7 @@ public class yetAnotherDiana
 
 
         //JungleJump
-        if (Utility.Map.GetMap()._MapType == Utility.Map.MapType.SummonersRift && Config.Item("Jungle-Jump-Key").GetValue<KeyBind>().Active)
+        if (Utility.Map.GetMap().Type == Utility.Map.MapType.SummonersRift && Config.Item("Jungle-Jump-Key").GetValue<KeyBind>().Active)
         {
 			
 			if (Config.Item("Jungle-MoveTo").GetValue<bool>())
@@ -829,7 +830,7 @@ public class yetAnotherDiana
         if (Config.Item("Draw R").GetValue<Circle>().Active)
             Utility.DrawCircle(Player.Position, Player.Spellbook.GetSpell(SpellSlot.R).SData.CastRange[0], Config.Item("Draw R").GetValue<Circle>().Color);
 
-        if (Utility.Map.GetMap()._MapType == Utility.Map.MapType.SummonersRift && Config.Item("Jungle-Draw-Spots").GetValue<Circle>().Active)
+        if (Utility.Map.GetMap().Type == Utility.Map.MapType.SummonersRift && Config.Item("Jungle-Draw-Spots").GetValue<Circle>().Active)
             foreach (var camp in jungleLocations.Where(camp => _r.IsReady() && _q.IsReady() && Player.Distance(camp.Value) <= 1500))
                 Utility.DrawCircle(camp.Value, camp.Key, Config.Item("Jungle-Draw-Spots").GetValue<Circle>().Color, 2, 22);
 
