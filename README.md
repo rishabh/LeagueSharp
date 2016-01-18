@@ -1,5 +1,8 @@
 yetAnotherUdyr:
-Fun :)
+An assembly for playing Udyr
 
 yetAnotherDiana:
-2x Fun :)
+An assembly for playing Diana
+
+yetAnotherEzreal:
+An assembly for playing Ezreal
