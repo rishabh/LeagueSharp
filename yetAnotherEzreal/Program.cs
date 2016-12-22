@@ -17,7 +17,7 @@ internal class yetAnotherEzreal
 
 
     //Script Information
-    private const string VersionNumber = "1.0.3.2";
+    private const string VersionNumber = "1.1.0";
 
     //Ease of use
     private static Obj_AI_Hero Player = ObjectManager.Player;
@@ -259,7 +259,7 @@ internal class yetAnotherEzreal
         Config.AddToMainMenu();
 
         //Event Handlers
-        Game.OnGameUpdate += Game_OnGameUpdate;
+        Game.OnUpdate += Game_OnUpdate;
         Obj_AI_Base.OnProcessSpellCast += Obj_AI_Base_OnProcessSpellCast;
 
         //Recall
@@ -374,49 +374,61 @@ internal class yetAnotherEzreal
 
     static void Obj_AI_Base_OnTeleport(GameObject sender, GameObjectTeleportEventArgs args)
     {
-        var recallPacket = Packet.S2C.Teleport.Decoded(sender, args);
-        if (recallPacket.Type != Packet.S2C.Teleport.Type.Recall ||
-            _orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo || !Config.Item("Killsteal-R-Snipe-Enabled").GetValue<bool>() ||
-            Player.HasBuff("Recall")) return;
 
-        var hero = ObjectManager.GetUnitByNetworkId<Obj_AI_Hero>(recallPacket.UnitNetworkId);
-
-        if (!rFlag && recallPacket.Status == Packet.S2C.Teleport.Status.Start && hero.IsValid &&
-            hero.IsValidTarget(Config.Item("Killsteal-R-Snipe-Range").GetValue<Slider>().Value) &&
-            _r.GetDamage(hero) > hero.Health + 50)
+        var target = sender as Obj_AI_Hero;
+        if (target == null || !target.IsValid || target.IsAlly) return;
+        
+        try
         {
-            rCastAtTime = recallPacket.Start + recallPacket.Duration -
-                          Config.Item("Killsteal-R-Snipe-Delay").GetValue<Slider>().Value -
-                          ((Player.ServerPosition.Distance(hero.Position) / _r.Speed + _r.Delay) * 1000);
+            var recallPacket = Packet.S2C.Teleport.Decoded(target, args);
+            if (recallPacket.Type != Packet.S2C.Teleport.Type.Recall ||
+                _orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo ||
+                !Config.Item("Killsteal-R-Snipe-Enabled").GetValue<bool>() ||
+                Player.HasBuff("Recall")) return;
 
-            if (rCastAtTime < Environment.TickCount)
+            var hero = ObjectManager.GetUnitByNetworkId<Obj_AI_Hero>(recallPacket.UnitNetworkId);
+
+            if (!rFlag && recallPacket.Status == Packet.S2C.Teleport.Status.Start && hero.IsValid &&
+                hero.IsValidTarget(Config.Item("Killsteal-R-Snipe-Range").GetValue<Slider>().Value) &&
+                _r.GetDamage(hero) > hero.Health + 50)
             {
-                //Can't make it in time
+                rCastAtTime = recallPacket.Start + recallPacket.Duration -
+                              Config.Item("Killsteal-R-Snipe-Delay").GetValue<Slider>().Value -
+                              ((Player.ServerPosition.Distance(hero.Position) / _r.Speed + _r.Delay) * 1000);
+
+                if (rCastAtTime < Environment.TickCount)
+                {
+                    //Can't make it in time
+                    rFlag = false;
+                    Console.WriteLine("Too early");
+                    rNetworkID = 0;
+                }
+                else
+                {
+                    rPlayerVector = Player.ServerPosition;
+                    rCastVector = hero.Position;
+                    rNetworkID = recallPacket.UnitNetworkId;
+                    rFlag = true;
+                    Console.WriteLine("rFlag: " + Environment.TickCount);
+                }
+            }
+            else if ((recallPacket.Status == Packet.S2C.Teleport.Status.Abort ||
+                      recallPacket.Status == Packet.S2C.Teleport.Status.Finish)
+                     && recallPacket.UnitNetworkId == rNetworkID)
+            {
                 rFlag = false;
-                Console.WriteLine("Too early");
-                rNetworkID = recallPacket.UnitNetworkId;
-            }
-            else
-            {
-                rPlayerVector = Player.ServerPosition;
-                rCastVector = hero.Position;
-                rNetworkID = recallPacket.UnitNetworkId;
-                rFlag = true;
-                Console.WriteLine("rFlag: " + Environment.TickCount);
+                Console.WriteLine("Abort");
+                rNetworkID = 0;
             }
         }
-        else if ((recallPacket.Status == Packet.S2C.Teleport.Status.Abort ||
-                  recallPacket.Status == Packet.S2C.Teleport.Status.Finish)
-                 && recallPacket.UnitNetworkId == rNetworkID)
+        catch
         {
-            rFlag = false;
-            Console.WriteLine("Abort");
-            rNetworkID = 0;
         }
+
     }
     #endregion
 
-    private static void Game_OnGameUpdate(EventArgs args)
+    private static void Game_OnUpdate(EventArgs args)
     {
         if (Player.IsDead) return;
 
@@ -624,7 +636,6 @@ internal class yetAnotherEzreal
         }
     }
 
-
     private static void KillSteal()
     {
         foreach (var enemyInRange in ObjectManager.Get<Obj_AI_Hero>().Where(enemy => enemy.IsValidTarget(_q.Range)))
@@ -684,13 +695,13 @@ internal class yetAnotherEzreal
             DrawE();
 
         if (Config.Item("Drawing-Q-Range").GetValue<Circle>().Active || (Config.Item("Drawing-Q-Ready").GetValue<bool>() && _q.IsReady()))
-            Utility.DrawCircle(Player.Position, _q.Range, Config.Item("Drawing-Q-Range").GetValue<Circle>().Color, 7, 20);
+            Render.Circle.DrawCircle(Player.Position, _q.Range, Config.Item("Drawing-Q-Range").GetValue<Circle>().Color, 7);
 
         if (Config.Item("Drawing-W-Range").GetValue<Circle>().Active || (Config.Item("Drawing-W-Ready").GetValue<bool>() && _w.IsReady()))
-            Utility.DrawCircle(Player.Position, _w.Range, Config.Item("Drawing-W-Range").GetValue<Circle>().Color, 7, 20);
+            Render.Circle.DrawCircle(Player.Position, _w.Range, Config.Item("Drawing-W-Range").GetValue<Circle>().Color, 7);
 
         if (Config.Item("Drawing-E-Range").GetValue<Circle>().Active || (Config.Item("Drawing-E-Ready").GetValue<bool>() && _e.IsReady()))
-            Utility.DrawCircle(Player.Position, _e.Range, Config.Item("Drawing-E-Range").GetValue<Circle>().Color, 7, 20);
+            Render.Circle.DrawCircle(Player.Position, _e.Range, Config.Item("Drawing-E-Range").GetValue<Circle>().Color, 7);
 
     }
 
@@ -722,7 +733,7 @@ internal class yetAnotherEzreal
         var readyColor = _e.IsReady() ? System.Drawing.Color.Green : System.Drawing.Color.Red;
 
         Drawing.DrawLine(Drawing.WorldToScreen(myPos + directionPerpendicular), Drawing.WorldToScreen(CastPosition), 2, readyColor);
-        Utility.DrawCircle(CastPosition, 50, readyColor, 5, 15);
+        Render.Circle.DrawCircle(CastPosition, 50, readyColor, 5, true);
     }
 
     private static double ComboDamage(Obj_AI_Hero target)
