@@ -18,7 +18,10 @@ public class yetAnotherUdyr
     static string versionNumber = "1.3.0";
     //Ease of use
 
-    static readonly Obj_AI_Hero Player = ObjectManager.Player;
+    private static Obj_AI_Hero Player
+    {
+        get { return ObjectManager.Player; }
+    }
     static Menu Config;
 
     static Orbwalking.Orbwalker Orbwalker;
